@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC/USDT Live Trading System</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+background:#07111d;
+color:#fff;
+font-family:Arial,sans-serif
+}
+.wrap{max-width:1200px;margin:auto;padding:10px}
+.card{
+background:#0d1929;
+border:1px solid #263852;
+border-radius:12px;
+padding:12px;
+margin-bottom:10px
+}
+.top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+flex-wrap:wrap
+}
+.symbol{color:#9aa9bb;font-size:14px}
+.price{font-size:30px;font-weight:bold}
+.status{margin-top:5px;color:#ffd54a}
+.controls{display:flex;gap:7px;flex-wrap:wrap}
+button,select,input{
+background:#17263c;
+color:#fff;
+border:1px solid #344967;
+border-radius:7px;
+padding:9px
+}
+button{font-weight:bold}
+.chart{
+height:520px;
+position:relative;
+overflow:hidden
+}
+canvas{width:100%;height:100%;display:block}
+.signal{
+padding:14px;
+border-radius:9px;
+text-align:center;
+font-size:25px;
+font-weight:bold;
+background:#17263c
+}
+.buy{color:#16c784}
+.sell{color:#ff5573}
+.wait{color:#ffd54a}
+.grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:8px
+}
+.box{
+background:#17263c;
+padding:10px;
+border-radius:8px
+}
+.box small{color:#9aa9bb}
+.box b{display:block;margin-top:5px;font-size:16px}
+.settings{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px
+}
+.setting{
+background:#17263c;
+padding:9px;
+border-radius:8px
+}
+.setting label{
+display:block;
+font-size:12px;
+color:#aab7c7;
+margin-bottom:5px
+}
+.setting input{width:100%}
+@media(max-width:700px){
+.grid{grid-template-columns:repeat(2,1fr)}
+.settings{grid-template-columns:repeat(2,1fr)}
+.chart{height:420px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="card">
+<div class="top">
+
+<div>
+<div class="symbol">BINANCE • BTC/USDT • SPOT</div>
+<div id="price" class="price">Loading...</div>
+<div id="status" class="status">Starting...</div>
+</div>
+
+<div class="controls">
+<select id="tf">
+<option value="1m">1 Minute</option>
+<option value="5m">5 Minute</option>
+<option value="15m">15 Minute</option>
+<option value="30m">30 Minute</option>
+<option value="1h">1 Hour</option>
+<option value="4h">4 Hour</option>
+</select>
+
+<button id="refresh">Refresh</button>
+</div>
+
+</div>
+</div>
+
+
+<div class="card chart">
+<canvas id="chart"></canvas>
+</div>
+
+
+<div class="card">
+<h3>Signal</h3>
+<div id="signal" class="signal wait">WAIT</div>
+</div>
+
+
+<div class="card">
+<h3>Entry / SL / TP</h3>
+
+<div class="grid">
+
+<div class="box">
+<small>Entry</small>
+<b id="entry">--</b>
+</div>
+
+<div class="box">
+<small>SL</small>
+<b id="sl">--</b>
+</div>
+
+<div class="box">
+<small>TP1</small>
+<b id="tp1">--</b>
+</div>
+
+<div class="box">
+<small>TP2</small>
+<b id="tp2">--</b>
+</div>
+
+<div class="box">
+<small>TP3</small>
+<b id="tp3">--</b>
+</div>
+
+<div class="box">
+<small>Trailing SL</small>
+<b id="trail">--</b>
+</div>
+
+<div class="box">
+<small>SuperTrend</small>
+<b id="stValue">--</b>
+</div>
+
+<div class="box">
+<small>Trend</small>
+<b id="trend">--</b>
+</div>
+
+</div>
+</div>
+
+
+<div class="card">
+<h3>Indicators</h3>
+
+<div class="grid">
+
+<div class="box">
+<small>RSI</small>
+<b id="rsi">--</b>
+</div>
+
+<div class="box">
+<small>MACD</small>
+<b id="macd">--</b>
+</div>
+
+<div class="box">
+<small>ATR</small>
+<b id="atr">--</b>
+</div>
+
+<div class="box">
+<small>VWAP</small>
+<b id="vwap">--</b>
+</div>
+
+</div>
+</div>
+
+
+<div class="card">
+<h3>Indicator Settings</h3>
+
+<div class="settings">
+
+<div class="setting">
+<label>SuperTrend ATR</label>
+<input id="stPeriod" type="number" value="10">
+</div>
+
+<div class="setting">
+<label>SuperTrend Multiplier</label>
+<input id="stMult" type="number" value="3" step="0.1">
+</div>
+
+<div class="setting">
+<label>RSI Period</label>
+<input id="rsiPeriod" type="number" value="14">
+</div>
+
+<div class="setting">
+<label>TP1 %</label>
+<input id="tp1Pct" type="number" value="0.50" step="0.05">
+</div>
+
+<div class="setting">
+<label>TP2 %</label>
+<input id="tp2Pct" type="number" value="1.00" step="0.05">
+</div>
+
+<div class="setting">
+<label>TP3 %</label>
+<input id="tp3Pct" type="number" value="1.50" step="0.05">
+</div>
+
+<div class="setting">
+<label>Trailing SL %</label>
+<input id="trailPct" type="number" value="0.30" step="0.05">
+</div>
+
+</div>
+</div>
+
+
+<div class="card">
+
+<h3>🔔 Alert</h3>
+
+<label>
+<input id="alertOn" type="checkbox" checked>
+Enable Alert
+</label>
+
+<div id="alertText"
+style="margin-top:10px;background:#17263c;padding:10px;border-radius:8px">
+Waiting for signal...
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+"use strict";
+
+
+/* ==============================
+   GLOBAL
+============================== */
+
+const S={
+symbol:"BTCUSDT",
+tf:"1m",
+candles:[],
+price:0,
+atr:[],
+st:[],
+dir:[],
+rsi:[],
+vwap:[],
+trade:null,
+socket:null,
+lastClosed:0,
+retry:null
+};
+
+
+const $=id=>document.getElementById(id);
+
+
+/* ==============================
+   FORMAT
+============================== */
+
+function money(x){
+
+if(!Number.isFinite(x)) return "--";
+
+return x.toLocaleString(
+"en-US",
+{
+minimumFractionDigits:2,
+maximumFractionDigits:2
+}
+);
+
+}
+
+
+/* ==============================
+   STATUS
+============================== */
+
+function status(t){
+
+$("status").textContent=t;
+
+}
+
+
+/* ==============================
+   BINANCE REST
+============================== */
+
+async function load(){
+
+try{
+
+status("Loading Binance...");
+
+const url=
+"https://data-api.binance.vision/api/v3/klines"+
+"?symbol=BTCUSDT"+
+"&interval="+S.tf+
+"&limit=200";
+
+const r=await fetch(url,{
+cache:"no-store"
+});
+
+if(!r.ok)
+throw new Error("HTTP "+r.status);
+
+const data=await r.json();
+
+if(!Array.isArray(data))
+throw new Error("Invalid data");
+
+
+S.candles=data.map(x=>({
+
+time:+x[0],
+open:+x[1],
+high:+x[2],
+low:+x[3],
+close:+x[4],
+volume:+x[5],
+closed:true
+
+}));
+
+
+if(S.candles.length){
+
+S.price=
+S.candles[S.candles.length-1].close;
+
+S.lastClosed=
+S.candles[S.candles.length-1].time;
+
+}
+
+
+calculate();
+update();
+draw();
+
+status("🟢 LIVE");
+
+}
+catch(e){
+
+console.error(e);
+
+status("🔴 Binance connection failed");
+
+}
+
+}
+
+
+/* ==============================
+   WEBSOCKET
+============================== */
+
+function socket(){
+
+if(S.socket){
+
+try{
+S.socket.close();
+}catch(e){}
+
+}
+
+
+const url=
+"wss://data-stream.binance.vision:443/ws/btcusdt@kline_"+S.tf;
+
+
+status("Connecting...");
+
+
+S.socket=new WebSocket(url);
+
+
+S.socket.onopen=()=>{
+
+status("🟢 LIVE • Binance");
+
+};
+
+
+S.socket.onmessage=e=>{
+
+try{
+
+const d=JSON.parse(e.data);
+
+if(!d.k) return;
+
+const k=d.k;
+
+const c={
+
+time:+k.t,
+open:+k.o,
+high:+k.h,
+low:+k.l,
+close:+k.c,
+volume:+k.v,
+closed:!!k.x
+
+};
+
+
+const last=
+S.candles[S.candles.length-1];
+
+
+if(!last || last.time!==c.time){
+
+S.candles.push(c);
+
+if(S.candles.length>200)
+S.candles.shift();
+
+}
+else{
+
+S.candles[S.candles.length-1]=c;
+
+}
+
+
+S.price=c.close;
+
+update();
+calculate();
+draw();
+
+
+if(c.closed && c.time!==S.lastClosed){
+
+S.lastClosed=c.time;
+
+newSignal();
+
+}
+
+}
+catch(err){
+
+console.error(err);
+
+}
+
+};
+
+
+S.socket.onerror=()=>{
+
+status("⚠️ WebSocket error — REST backup");
+
+};
+
+
+S.socket.onclose=()=>{
+
+status("Reconnecting...");
+
+clearTimeout(S.retry);
+
+S.retry=setTimeout(socket,3000);
+
+};
+
+}
+
+
+/* ==============================
+   TRUE RANGE
+============================== */
+
+function tr(i){
+
+const c=S.candles[i];
+
+if(i===0)
+return c.high-c.low;
+
+const p=S.candles[i-1];
+
+return Math.max(
+c.high-c.low,
+Math.abs(c.high-p.close),
+Math.abs(c.low-p.close)
+);
+
+}
+
+
+/* ==============================
+   ATR
+============================== */
+
+function ATR(period){
+
+const n=S.candles.length;
+
+const a=new Array(n).fill(null);
+
+if(n<=period)
+return a;
+
+let sum=0;
+
+for(let i=1;i<=period;i++)
+sum+=tr(i);
+
+a[period]=sum/period;
+
+for(let i=period+1;i<n;i++){
+
+a[i]=
+(a[i-1]*(period-1)+tr(i))
+/period;
+
+}
+
+return a;
+
+}
+
+
+/* ==============================
+   SUPERTREND
+============================== */
+
+function supertrend(period,mult){
+
+const n=S.candles.length;
+
+const a=ATR(period);
+
+const upper=new Array(n).fill(null);
+const lower=new Array(n).fill(null);
+const st=new Array(n).fill(null);
+const dir=new Array(n).fill(0);
+
+
+for(let i=period;i<n;i++){
+
+const c=S.candles[i];
+
+const mid=(c.high+c.low)/2;
+
+const bu=mid+mult*a[i];
+
+const bl=mid-mult*a[i];
+
+
+if(i===period){
+
+upper[i]=bu;
+lower[i]=bl;
+
+dir[i]=c.close>=mid?1:-1;
+
+st[i]=dir[i]===1?bl:bu;
+
+continue;
+
+}
+
+
+const pc=S.candles[i-1].close;
+
+
+upper[i]=
+bu<upper[i-1] || pc>upper[i-1]
+?
+bu
+:
+upper[i-1];
+
+
+lower[i]=
+bl>lower[i-1] || pc<lower[i-1]
+?
+bl
+:
+lower[i-1];
+
+
+if(
+dir[i-1]===-1 &&
+c.close>upper[i-1]
+){
+
+dir[i]=1;
+
+}
+else if(
+dir[i-1]===1 &&
+c.close<lower[i-1]
+){
+
+dir[i]=-1;
+
+}
+else{
+
+dir[i]=dir[i-1];
+
+}
+
+
+st[i]=dir[i]===1?lower[i]:upper[i];
+
+}
+
+
+return{atr:a,st,dir};
+
+}
+
+
+/* ==============================
+   RSI
+============================== */
+
+function RSI(period){
+
+const n=S.candles.length;
+
+const out=new Array(n).fill(null);
+
+if(n<=period)
+return out;
+
+let gain=0;
+let loss=0;
+
+for(let i=1;i<=period;i++){
+
+const d=
+S.candles[i].close-
+S.candles[i-1].close;
+
+if(d>0)
+gain+=d;
+else
+loss-=d;
+
+}
+
+gain/=period;
+loss/=period;
+
+out[period]=
+loss===0
+?
+100
+:
+100-100/(1+gain/loss);
+
+
+for(let i=period+1;i<n;i++){
+
+const d=
+S.candles[i].close-
+S.candles[i-1].close;
+
+const g=d>0?d:0;
+const l=d<0?-d:0;
+
+gain=(gain*(period-1)+g)/period;
+loss=(loss*(period-1)+l)/period;
+
+out[i]=
+loss===0
+?
+100
+:
+100-100/(1+gain/loss);
+
+}
+
+return out;
+
+}
+
+
+/* ==============================
+   VWAP
+============================== */
+
+function VWAP(){
+
+const out=
+new Array(S.candles.length).fill(null);
+
+let pv=0;
+let vol=0;
+
+for(let i=0;i<S.candles.length;i++){
+
+const c=S.candles[i];
+
+const typical=
+(c.high+c.low+c.close)/3;
+
+pv+=typical*c.volume;
+vol+=c.volume;
+
+out[i]=vol?pv/vol:null;
+
+}
+
+return out;
+
+}
+
+
+/* ==============================
+   CALCULATE
+============================== */
+
+function calculate(){
+
+if(S.candles.length<30)
+return;
+
+
+const period=
+Math.max(1,+$("stPeriod").value||10);
+
+const mult=
+Math.max(.1,+$("stMult").value||3);
+
+
+const st=
+supertrend(period,mult);
+
+
+S.atr=st.atr;
+S.st=st.st;
+S.dir=st.dir;
+
+
+S.rsi=
+RSI(
+Math.max(
+1,
++$("rsiPeriod").value||14
+)
+);
+
+
+S.vwap=VWAP();
+
+
+const i=S.candles.length-1;
+
+
+if(S.st[i]!=null)
+$("stValue").textContent=money(S.st[i]);
+
+if(S.atr[i]!=null)
+$("atr").textContent=money(S.atr[i]);
+
+if(S.rsi[i]!=null)
+$("rsi").textContent=S.rsi[i].toFixed(2);
+
+if(S.vwap[i]!=null)
+$("vwap").textContent=money(S.vwap[i]);
+
+
+if(S.dir[i]===1){
+
+$("trend").textContent="BULLISH";
+$("trend").className="buy";
+
+}
+else if(S.dir[i]===-1){
+
+$("trend").textContent="BEARISH";
+$("trend").className="sell";
+
+}
+
+
+const sig=getSignal(i);
+
+showSignal(sig);
+
+trailing();
+
+}
+
+
+/* ==============================
+   SIGNAL
+============================== */
+
+function getSignal(i){
+
+if(i<1)
+return 0;
+
+
+let bull=0;
+let bear=0;
+
+
+/* SuperTrend */
+
+if(S.dir[i]===1)
+bull++;
+
+else if(S.dir[i]===-1)
+bear++;
+
+
+/* EMA 9 */
+
+const ema9=
+ema(
+S.candles.map(x=>x.close),
+9
+)[i];
+
+
+/* EMA 21 */
+
+const ema21=
+ema(
+S.candles.map(x=>x.close),
+21
+)[i];
+
+
+const price=S.candles[i].close;
+
+
+if(ema9!=null){
+
+if(price>ema9)
+bull++;
+else
+bear++;
+
+}
+
+
+if(ema21!=null){
+
+if(price>ema21)
+bull++;
+else
+bear++;
+
+}
+
+
+/* VWAP */
+
+if(S.vwap[i]!=null){
+
+if(price>S.vwap[i])
+bull++;
+else
+bear++;
+
+}
+
+
+/* RSI */
+
+if(S.rsi[i]!=null){
+
+if(S.rsi[i]>=55)
+bull++;
+
+else if(S.rsi[i]<=45)
+bear++;
+
+}
+
+
+if(bull>=3 && bull>bear)
+return 1;
+
+if(bear>=3 && bear>bull)
+return -1;
+
+return 0;
+
+}
+
+
+/* ==============================
+   EMA
+============================== */
+
+function ema(values,p){
+
+const out=
+new Array(values.length).fill(null);
+
+if(values.length<p)
+return out;
+
+let sum=0;
+
+for(let i=0;i<p;i++)
+sum+=values[i];
+
+out[p-1]=sum/p;
+
+const a=2/(p+1);
+
+for(let i=p;i<values.length;i++){
+
+out[i]=
+values[i]*a+
+out[i-1]*(1-a);
+
+}
+
+return out;
+
+}
+
+
+/* ==============================
+   SHOW SIGNAL
+============================== */
+
+function showSignal(s){
+
+const el=$("signal");
+
+el.className="signal";
+
+
+if(s===1){
+
+el.textContent="🟢 BUY";
+el.classList.add("buy");
+
+}
+else if(s===-1){
+
+el.textContent="🔴 SELL";
+el.classList.add("sell");
+
+}
+else{
+
+el.textContent="WAIT";
+el.classList.add("wait");
+
+}
+
+}
+
+
+/* ==============================
+   NEW SIGNAL
+============================== */
+
+function newSignal(){
+
+const i=S.candles.length-2;
+
+const s=getSignal(i);
+
+if(s===0)
+return;
+
+
+const entry=S.candles[i].close;
+
+const tp1=
+(+$("tp1Pct").value||.5)/100;
+
+const tp2=
+(+$("tp2Pct").value||1)/100;
+
+const tp3=
+(+$("tp3Pct").value||1.5)/100;
+
+const trail=
+(+$("trailPct").value||.3)/100;
+
+
+let sl=S.st[i];
+
+
+/* Safe SL */
+
+if(
+!Number.isFinite(sl) ||
+(s===1 && sl>=entry) ||
+(s===-1 && sl<=entry)
+){
+
+sl=
+s===1
+?
+entry*(1-tp1)
+:
+entry*(1+tp1);
+
+}
+
+
+S.trade={
+
+side:s,
+
+entry:entry,
+
+sl:sl,
+
+tp1:
+s===1
+?
+entry*(1+tp1)
+:
+entry*(1-tp1),
+
+tp2:
+s===1
+?
+entry*(1+tp2)
+:
+entry*(1-tp2),
+
+tp3:
+s===1
+?
+entry*(1+tp3)
+:
+entry*(1-tp3),
+
+trail:
+s===1
+?
+entry*(1-trail)
+:
+entry*(1+trail),
+
+high:entry,
+
+low:entry
+
+};
+
+
+renderTrade();
+
+
+/*
+Every NEW closed candle signal
+can generate an alert.
+*/
+
+const text=
+s===1
+?
+"🟢 BTC/USDT BUY SIGNAL"
+:
+"🔴 BTC/USDT SELL SIGNAL";
+
+
+alertUser(text,entry);
+
+}
+
+
+/* ==============================
+   TRAILING
+============================== */
+
+function trailing(){
+
+if(!S.trade)
+return;
+
+
+const t=S.trade;
+
+const p=S.price;
+
+const pct=
+(+$("trailPct").value||.3)/100;
+
+
+if(t.side===1){
+
+if(p>t.high)
+t.high=p;
+
+const v=t.high*(1-pct);
+
+if(v>t.trail)
+t.trail=v;
+
+}
+else{
+
+if(p<t.low)
+t.low=p;
+
+const v=t.low*(1+pct);
+
+if(v<t.trail)
+t.trail=v;
+
+}
+
+
+renderTrade();
+
+}
+
+
+/* ==============================
+   TRADE DISPLAY
+============================== */
+
+function renderTrade(){
+
+if(!S.trade)
+return;
+
+$("entry").textContent=money(S.trade.entry);
+$("sl").textContent=money(S.trade.sl);
+$("tp1").textContent=money(S.trade.tp1);
+$("tp2").textContent=money(S.trade.tp2);
+$("tp3").textContent=money(S.trade.tp3);
+$("trail").textContent=money(S.trade.trail);
+
+}
+
+
+/* ==============================
+   ALERT
+============================== */
+
+function alertUser(text,price){
+
+if(!$("alertOn").checked)
+return;
+
+
+$("alertText").textContent=
+text+" @ $"+money(price);
+
+
+if(
+"Notification" in window
+){
+
+if(Notification.permission==="default"){
+
+Notification.requestPermission();
+
+}
+else if(Notification.permission==="granted"){
+
+new Notification(
+text,
+{
+body:"BTC/USDT  $"+money(price)
+}
+);
+
+}
+
+}
+
+
+/* SOUND */
+
+try{
+
+const AC=
+window.AudioContext||
+window.webkitAudioContext;
+
+const ac=new AC();
+
+const osc=ac.createOscillator();
+
+const gain=ac.createGain();
+
+osc.connect(gain);
+gain.connect(ac.destination);
+
+osc.frequency.value=850;
+gain.gain.value=.08;
+
+osc.start();
+
+setTimeout(()=>{
+
+osc.stop();
+ac.close();
+
+},300);
+
+}
+catch(e){}
+
+}
+
+
+/* ==============================
+   PRICE UPDATE
+============================== */
+
+function update(){
+
+$("price").textContent=
+"$"+money(S.price)+" USDT";
+
+}
+
+
+/* ==============================
+   CANVAS
+============================== */
+
+const canvas=$("chart");
+
+const ctx=canvas.getContext("2d");
+
+
+function resize(){
+
+const r=canvas.parentElement;
+
+const d=devicePixelRatio||1;
+
+canvas.width=r.clientWidth*d;
+canvas.height=r.clientHeight*d;
+
+canvas.style.width=r.clientWidth+"px";
+canvas.style.height=r.clientHeight+"px";
+
+ctx.setTransform(d,0,0,d,0,0);
+
+draw();
+
+}
+
+
+window.addEventListener("resize",resize);
+
+
+/* ==============================
+   DRAW
+============================== */
+
+function draw(){
+
+if(S.candles.length<2)
+return;
+
+
+const W=canvas.parentElement.clientWidth;
+const H=canvas.parentElement.clientHeight;
+
+ctx.clearRect(0,0,W,H);
+
+
+const data=S.candles;
+
+let min=Math.min(...data.map(x=>x.low));
+
+let max=Math.max(...data.map(x=>x.high));
+
+
+if(S.trade){
+
+min=Math.min(
+min,
+S.trade.sl,
+S.trade.tp1,
+S.trade.tp2,
+S.trade.tp3,
+S.trade.trail
+);
+
+max=Math.max(
+max,
+S.trade.sl,
+S.trade.tp1,
+S.trade.tp2,
+S.trade.tp3,
+S.trade.trail
+);
+
+}
+
+
+const range=max-min||1;
+
+const step=W/data.length;
+
+const cw=Math.max(2,step*.65);
+
+
+function y(v){
+
+return 8+
+(max-v)/(range)*(H-16);
+
+}
+
+
+/* GRID */
+
+ctx.strokeStyle="#17263c";
+
+for(let i=1;i<5;i++){
+
+const yy=
+8+(H-16)*i/5;
+
+ctx.beginPath();
+ctx.moveTo(0,yy);
+ctx.lineTo(W,yy);
+ctx.stroke();
+
+}
+
+
+/* CANDLES */
+
+for(let i=0;i<data.length;i++){
+
+const c=data[i];
+
+const x=i*step+step/2;
+
+const yo=y(c.open);
+const yc=y(c.close);
+const yh=y(c.high);
+const yl=y(c.low);
+
+const up=c.close>=c.open;
+
+ctx.strokeStyle=
+up
+?
+"#16c784"
+:
+"#ff5573";
+
+ctx.fillStyle=
+ctx.strokeStyle;
+
+
+/* wick */
+
+ctx.beginPath();
+ctx.moveTo(x,yh);
+ctx.lineTo(x,yl);
+ctx.stroke();
+
+
+/* body */
+
+ctx.fillRect(
+x-cw/2,
+Math.min(yo,yc),
+cw,
+Math.max(1,Math.abs(yc-yo))
+);
+
+}
+
+
+/* LINE FUNCTION */
+
+function line(values,show){
+
+if(!show)
+return;
+
+ctx.beginPath();
+
+let started=false;
+
+for(let i=0;i<values.length;i++){
+
+const v=values[i];
+
+if(v==null)
+continue;
+
+const x=i*step+step/2;
+const yy=y(v);
+
+if(!started){
+
+ctx.moveTo(x,yy);
+started=true;
+
+}
+else{
+
+ctx.lineTo(x,yy);
+
+}
+
+}
+
+ctx.stroke();
+
+}
+
+
+/* SuperTrend */
+
+ctx.lineWidth=2;
+ctx.strokeStyle="#ffd54a";
+
+line(S.st,true);
+
+
+/* VWAP */
+
+ctx.lineWidth=1;
+ctx.strokeStyle="#00d2ff";
+
+line(S.vwap,true);
+
+
+/* Trade levels */
+
+if(S.trade){
+
+ctx.setLineDash([5,5]);
+
+ctx.strokeStyle="#ffffff";
+
+[
+S.trade.entry,
+S.trade.sl,
+S.trade.tp1,
+S.trade.tp2,
+S.trade.tp3,
+S.trade.trail
+].forEach(v=>{
+
+const yy=y(v);
+
+ctx.beginPath();
+ctx.moveTo(0,yy);
+ctx.lineTo(W,yy);
+ctx.stroke();
+
+});
+
+ctx.setLineDash([]);
+
+}
+
+
+/* LIVE PRICE */
+
+const py=y(S.price);
+
+ctx.setLineDash([5,5]);
+ctx.strokeStyle="#ffd54a";
+
+ctx.beginPath();
+ctx.moveTo(0,py);
+ctx.lineTo(W,py);
+ctx.stroke();
+
+ctx.setLineDash([]);
+
+ctx.fillStyle="#ffd54a";
+ctx.font="bold 12px Arial";
+
+ctx.fillText(
+"$"+money(S.price),
+5,
+Math.max(15,py-5)
+);
+
+}
+
+
+/* ==============================
+   EVENTS
+============================== */
+
+$("tf").addEventListener(
+"change",
+async()=>{
+
+S.tf=$("tf").value;
+
+S.candles=[];
+S.trade=null;
+S.lastClosed=0;
+
+await load();
+
+socket();
+
+}
+);
+
+
+$("refresh").addEventListener(
+"click",
+load
+);
+
+
+[
+"stPeriod",
+"stMult",
+"rsiPeriod",
+"tp1Pct",
+"tp2Pct",
+"tp3Pct",
+"trailPct"
+].forEach(id=>{
+
+$(id).addEventListener(
+"change",
+()=>{
+calculate();
+draw();
+}
+);
+
+});
+
+
+/* ==============================
+   START
+============================== */
+
+(async()=>{
+
+await load();
+
+socket();
+
+setTimeout(resize,300);
+
+})();
+
+
+/* redraw / trailing */
+
+setInterval(()=>{
+
+if(S.price){
+
+trailing();
+
+draw();
+
+}
+
+},1000);
+
+</script>
+
+</body>
+</html>
