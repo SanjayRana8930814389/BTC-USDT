@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC PRO</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ background:#07111d;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+button,input,select{font:inherit}
+button{
+ border:0;
+ border-radius:7px;
+ padding:10px 13px;
+ background:#16314b;
+ color:#fff;
+ font-weight:bold;
+ cursor:pointer
+}
+button:hover{opacity:.9}
+input,select{
+ width:100%;
+ padding:11px;
+ margin:5px 0;
+ border:1px solid #304b65;
+ border-radius:7px;
+ background:#0d2033;
+ color:#fff
+}
+.auth{
+ min-height:100vh;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ padding:15px
+}
+.authBox{
+ width:min(420px,100%);
+ background:#0c1d2e;
+ border:1px solid #29455e;
+ border-radius:12px;
+ padding:20px
+}
+.authBox h1{text-align:center}
+.tabs{display:flex;gap:5px}
+.tabs button{flex:1}
+.card{
+ background:#0c1d2e;
+ border:1px solid #263f57;
+ border-radius:10px;
+ padding:12px;
+ margin:9px 0
+}
+.hidden{display:none!important}
+.page{display:none}
+.page.active{display:block}
+.wrap{
+ width:min(1200px,96%);
+ margin:auto
+}
+.row{
+ display:flex;
+ gap:7px;
+ flex-wrap:wrap
+}
+.row>*{
+ flex:1;
+ min-width:100px
+}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:8px
+}
+@media(max-width:800px){
+ .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:500px){
+ .grid{grid-template-columns:1fr 1fr}
+}
+.value{
+ font-size:19px;
+ font-weight:bold;
+ margin-top:5px
+}
+.small{
+ color:#8ea4b8;
+ font-size:12px
+}
+.green{color:#00d084}
+.red{color:#ff526d}
+.yellow{color:#ffd54a}
+.success{background:#075e48}
+.danger{background:#7c293c}
+header{
+ background:#0b1b2b;
+ padding:13px;
+ border-bottom:1px solid #233b52;
+ position:sticky;
+ top:0;
+ z-index:50
+}
+.nav{
+ display:flex;
+ gap:5px;
+ overflow:auto;
+ padding:7px;
+ background:#091725;
+ position:sticky;
+ top:62px;
+ z-index:40
+}
+.nav button{white-space:nowrap}
+#chart{
+ width:100%;
+ height:430px;
+ display:block;
+ background:#07131f;
+ border:1px solid #294157;
+ border-radius:8px;
+ touch-action:none
+}
+.checks{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:8px
+}
+.checks label{
+ background:#10263b;
+ padding:8px;
+ border-radius:6px
+}
+@media(max-width:600px){
+ .checks{grid-template-columns:1fr 1fr}
+}
+.scroll{overflow:auto}
+table{
+ width:100%;
+ border-collapse:collapse
+}
+th,td{
+ border-bottom:1px solid #253d53;
+ padding:7px;
+ text-align:left;
+ white-space:nowrap;
+ font-size:12px
+}
+.message{
+ text-align:center;
+ min-height:20px;
+ margin-top:8px
+}
+.adminTitle{
+ border-left:4px solid #ffd54a;
+ padding-left:10px
+}
+</style>
+</head>
+
+<body>
+
+<!-- =====================================================
+ AUTH
+===================================================== -->
+
+<div id="auth" class="auth">
+
+<div class="authBox">
+
+<h1>₿ BTC PRO</h1>
+
+<div class="tabs">
+<button onclick="showLogin()">SIGN IN</button>
+<button onclick="showSignup()">SIGN UP</button>
+</div>
+
+<br>
+
+<!-- MEMBER LOGIN -->
+
+<div id="loginBox">
+
+<h3>Member Sign In</h3>
+
+<input
+ id="loginMobile"
+ type="tel"
+ inputmode="numeric"
+ placeholder="Mobile Number">
+
+<input
+ id="loginPassword"
+ type="password"
+ placeholder="Password">
+
+<button
+ style="width:100%"
+ onclick="memberLogin()">
+SIGN IN
+</button>
+
+</div>
+
+
+<!-- MEMBER SIGNUP -->
+
+<div id="signupBox" class="hidden">
+
+<h3>Member Sign Up</h3>
+
+<input
+ id="signupName"
+ placeholder="Full Name">
+
+<input
+ id="signupMobile"
+ type="tel"
+ inputmode="numeric"
+ placeholder="Mobile Number">
+
+<input
+ id="signupPassword"
+ type="password"
+ placeholder="Create Password">
+
+<input
+ id="signupReferral"
+ placeholder="Referral Code">
+
+<button
+ style="width:100%"
+ onclick="memberSignup()">
+CREATE ACCOUNT
+</button>
+
+</div>
+
+
+<!-- ADMIN LOGIN -->
+
+<div class="card">
+
+<h3>👑 Admin Login</h3>
+
+<input
+ id="adminMobile"
+ type="tel"
+ inputmode="numeric"
+ placeholder="Admin Mobile Number">
+
+<input
+ id="adminPassword"
+ type="password"
+ placeholder="Admin Password">
+
+<button
+ style="width:100%"
+ onclick="adminLogin()">
+ADMIN LOGIN
+</button>
+
+</div>
+
+<div id="authMessage" class="message"></div>
+
+</div>
+</div>
+
+
+<!-- =====================================================
+ APPLICATION
+===================================================== -->
+
+<div id="app" class="hidden">
+
+<header>
+<div class="wrap">
+
+<h2 id="appTitle">₿ BTC PRO</h2>
+
+<div id="userInfo" class="small"></div>
+
+</div>
+</header>
+
+
+<!-- MEMBER NAV -->
+
+<nav id="memberNav" class="nav wrap">
+
+<button onclick="openPage('dashboard')">
+📊 Dashboard
+</button>
+
+<button onclick="openPage('trade')">
+🛒 Buy / Sell
+</button>
+
+<button onclick="openPage('wallet')">
+💰 Wallet
+</button>
+
+<button onclick="openPage('referral')">
+🔗 Referral
+</button>
+
+<button onclick="logout()">
+Logout
+</button>
+
+</nav>
+
+
+<!-- ADMIN NAV -->
+
+<nav id="adminNav" class="nav wrap hidden">
+
+<button onclick="openPage('adminHome')">
+👑 Admin
+</button>
+
+<button onclick="openPage('adminMembers')">
+👥 Members
+</button>
+
+<button onclick="openPage('adminWallet')">
+💰 Balance
+</button>
+
+<button onclick="openPage('adminRequests')">
+📥 Requests
+</button>
+
+<button onclick="openPage('adminHistory')">
+📜 History
+</button>
+
+<button onclick="logout()">
+Logout
+</button>
+
+</nav>
+
+
+<!-- =====================================================
+ MEMBER DASHBOARD
+===================================================== -->
+
+<section id="dashboard" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<div class="small">BTC/USDT</div>
+
+<div id="price" class="value">
+Connecting...
+</div>
+
+<div id="connection" class="small">
+Connecting...
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="row">
+
+<button onclick="setTF('1m')">1M</button>
+<button onclick="setTF('5m')">5M</button>
+<button onclick="setTF('15m')">15M</button>
+<button onclick="setTF('30m')">30M</button>
+<button onclick="setTF('1h')">1H</button>
+
+<button onclick="goLive()">LIVE</button>
+
+<button onclick="resetChart()">RESET</button>
+
+<button onclick="enableSound()">🔔 ALERT</button>
+
+</div>
+
+<br>
+
+<canvas id="chart"></canvas>
+
+<div class="small">
+Chart को उंगली/mouse से आगे-पीछे करें और zoom करें।
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>📈 Indicators</h3>
+
+<div class="checks">
+
+<label>
+<input
+ type="checkbox"
+ id="st"
+ checked
+ onchange="draw()">
+ SuperTrend
+</label>
+
+<label>
+<input
+ type="checkbox"
+ id="ema"
+ checked
+ onchange="draw()">
+ EMA
+</label>
+
+<label>
+<input
+ type="checkbox"
+ id="vwap"
+ onchange="draw()">
+ VWAP
+</label>
+
+<label>
+<input
+ type="checkbox"
+ id="rsi"
+ onchange="indicatorInfo()">
+ RSI
+</label>
+
+<label>
+<input
+ type="checkbox"
+ id="macd"
+ onchange="indicatorInfo()">
+ MACD
+</label>
+
+</div>
+
+</div>
+
+
+<div class="grid">
+
+<div class="card">
+<div class="small">TREND</div>
+<div id="trend" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="small">SIGNAL</div>
+<div id="signal" class="value">WAIT</div>
+</div>
+
+<div class="card">
+<div class="small">ENTRY</div>
+<div id="entry" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="small">ATR</div>
+<div id="atr" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="small">SL</div>
+<div id="sl" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="small">TP1</div>
+<div id="tp1" class="value green">--</div>
+</div>
+
+<div class="card">
+<div class="small">TP2</div>
+<div id="tp2" class="value green">--</div>
+</div>
+
+<div class="card">
+<div class="small">TP3</div>
+<div id="tp3" class="value green">--</div>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Indicator Values</h3>
+
+<div id="indicatorValues">
+Waiting...
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ MEMBER TRADE
+===================================================== -->
+
+<section id="trade" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>🛒 Buy / Sell</h2>
+
+<div class="grid">
+
+<div>
+<div class="small">Balance</div>
+<div id="tradeBalance" class="value">₹0</div>
+</div>
+
+<div>
+<div class="small">BTC</div>
+<div id="tradeBTC" class="value">0</div>
+</div>
+
+<div>
+<div class="small">Price</div>
+<div id="tradePrice" class="value">--</div>
+</div>
+
+<div>
+<div class="small">P/L</div>
+<div id="tradePL" class="value">₹0</div>
+</div>
+
+</div>
+
+<input
+ id="quantity"
+ type="number"
+ min="0"
+ step="0.000001"
+ placeholder="BTC Quantity">
+
+<div class="row">
+
+<button
+ class="success"
+ onclick="buy()">
+🟢 BUY
+</button>
+
+<button
+ class="danger"
+ onclick="sell()">
+🔴 SELL
+</button>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Position</h3>
+
+<div id="position">
+No Position
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Trade History</h3>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Time</th>
+<th>Side</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Value</th>
+<th>P/L</th>
+</tr>
+</thead>
+
+<tbody id="tradeHistory"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ MEMBER WALLET
+===================================================== -->
+
+<section id="wallet" class="page">
+
+<div class="wrap">
+
+<div class="grid">
+
+<div class="card">
+<div class="small">BALANCE</div>
+<div id="balance" class="value">₹0</div>
+</div>
+
+<div class="card">
+<div class="small">BTC</div>
+<div id="btc" class="value">0</div>
+</div>
+
+<div class="card">
+<div class="small">DEPOSIT</div>
+<div id="depositPending" class="value">₹0</div>
+</div>
+
+<div class="card">
+<div class="small">WITHDRAWAL</div>
+<div id="withdrawPending" class="value">₹0</div>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h3>📥 Deposit</h3>
+
+<input
+ id="depositAmount"
+ type="number"
+ min="1"
+ placeholder="Amount">
+
+<input
+ id="depositRef"
+ placeholder="Transaction ID">
+
+<button
+ class="success"
+ onclick="depositRequest()">
+SUBMIT
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>📤 Withdrawal</h3>
+
+<input
+ id="withdrawAmount"
+ type="number"
+ min="1"
+ placeholder="Amount">
+
+<input
+ id="withdrawAccount"
+ placeholder="Bank / Wallet Details">
+
+<button
+ class="danger"
+ onclick="withdrawRequest()">
+SUBMIT
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Wallet History</h3>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Type</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody id="walletHistory"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ MEMBER REFERRAL
+===================================================== -->
+
+<section id="referral" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>🔗 Referral</h2>
+
+<div class="small">Referral Code</div>
+
+<div id="refCode" class="value">--</div>
+
+<br>
+
+<input id="refLink" readonly>
+
+<button onclick="copyRef()">
+COPY LINK
+</button>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+<div class="small">REFERRALS</div>
+<div id="refCount" class="value">0</div>
+</div>
+
+<div class="card">
+<div class="small">COMMISSION</div>
+<div id="commission" class="value">₹0</div>
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ ADMIN HOME
+===================================================== -->
+
+<section id="adminHome" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2 class="adminTitle">
+👑 ADMIN CONTROL
+</h2>
+
+<div class="small">
+यह section केवल Admin के लिए है।
+</div>
+
+</div>
+
+
+<div class="grid">
+
+<div class="card">
+<div class="small">TOTAL MEMBERS</div>
+<div id="totalMembers" class="value">0</div>
+</div>
+
+<div class="card">
+<div class="small">ACTIVE</div>
+<div id="activeMembers" class="value green">0</div>
+</div>
+
+<div class="card">
+<div class="small">PENDING DEPOSIT</div>
+<div id="adminDeposits" class="value">₹0</div>
+</div>
+
+<div class="card">
+<div class="small">PENDING WITHDRAWAL</div>
+<div id="adminWithdrawals" class="value">₹0</div>
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ ADMIN MEMBERS
+===================================================== -->
+
+<section id="adminMembers" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>👥 Member Management</h2>
+
+</div>
+
+
+<div class="card">
+
+<h3>➕ Add Member</h3>
+
+<div class="row">
+
+<input
+ id="newName"
+ placeholder="Name">
+
+<input
+ id="newMobile"
+ placeholder="Mobile">
+
+<input
+ id="newPassword"
+ placeholder="Password">
+
+</div>
+
+<button onclick="adminAddMember()">
+ADD MEMBER
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>All Members</h3>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Mobile</th>
+<th>Balance</th>
+<th>BTC</th>
+<th>Status</th>
+<th>Controls</th>
+</tr>
+</thead>
+
+<tbody id="members"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ ADMIN BALANCE
+===================================================== -->
+
+<section id="adminWallet" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>💰 Balance Control</h2>
+
+<select id="balanceUser"></select>
+
+<input
+ id="changeAmount"
+ type="number"
+ min="0"
+ placeholder="Amount">
+
+<input
+ id="changeReason"
+ placeholder="Reason">
+
+<div class="row">
+
+<button
+ class="success"
+ onclick="addBalance()">
+➕ PLUS
+</button>
+
+<button
+ class="danger"
+ onclick="minusBalance()">
+➖ MINUS
+</button>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ ADMIN REQUESTS
+===================================================== -->
+
+<section id="adminRequests" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>📥 Deposit Requests</h2>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Member</th>
+<th>Amount</th>
+<th>Ref</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="depositRequests"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>📤 Withdrawal Requests</h2>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Member</th>
+<th>Amount</th>
+<th>Account</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="withdrawRequests"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+
+<!-- =====================================================
+ ADMIN HISTORY
+===================================================== -->
+
+<section id="adminHistory" class="page">
+
+<div class="wrap">
+
+<div class="card">
+
+<h2>📜 Balance History</h2>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Time</th>
+<th>Member</th>
+<th>Type</th>
+<th>Old</th>
+<th>Change</th>
+<th>New</th>
+<th>Reason</th>
+</tr>
+</thead>
+
+<tbody id="balanceHistory"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>🛒 All Trades</h2>
+
+<div class="scroll">
+
+<table>
+
+<thead>
+<tr>
+<th>Time</th>
+<th>Member</th>
+<th>Side</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Value</th>
+<th>P/L</th>
+</tr>
+</thead>
+
+<tbody id="allTrades"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+</section>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ DATABASE
+===================================================== */
+
+const KEY="BTC_PRO_FINAL_DATABASE";
+
+const ADMIN_MOBILE="8930814389";
+const ADMIN_PASSWORD="Rana1989";
+
+let db;
+
+function freshDB(){
+
+ return {
+  users:[],
+  transactions:[],
+  trades:[],
+  balanceHistory:[]
+ };
+
+}
+
+function loadDB(){
+
+ try{
+  db=JSON.parse(
+   localStorage.getItem(KEY)
+  );
+ }catch(e){
+  db=null;
+ }
+
+ if(
+  !db ||
+  !Array.isArray(db.users)
+ ){
+
+  db=freshDB();
+  saveDB();
+
+ }
+
+}
+
+function saveDB(){
+
+ localStorage.setItem(
+  KEY,
+  JSON.stringify(db)
+ );
+
+}
+
+loadDB();
+
+
+/* =====================================================
+ AUTH
+===================================================== */
+
+let currentUser=null;
+let audioContext=null;
+
+function msg(text,type="yellow"){
+
+ const e=
+  document.getElementById("authMessage");
+
+ e.textContent=text;
+ e.className="message "+type;
+
+}
+
+function showLogin(){
+
+ document
+  .getElementById("loginBox")
+  .classList.remove("hidden");
+
+ document
+  .getElementById("signupBox")
+  .classList.add("hidden");
+
+ msg("");
+
+}
+
+function showSignup(){
+
+ document
+  .getElementById("loginBox")
+  .classList.add("hidden");
+
+ document
+  .getElementById("signupBox")
+  .classList.remove("hidden");
+
+ msg("");
+
+}
+
+
+/* =====================================================
+ MEMBER SIGNUP
+===================================================== */
+
+function memberSignup(){
+
+ const name=
+  document.getElementById("signupName")
+  .value.trim();
+
+ const mobile=
+  document.getElementById("signupMobile")
+  .value.trim();
+
+ const password=
+  document.getElementById("signupPassword")
+  .value;
+
+ const referral=
+  document.getElementById("signupReferral")
+  .value.trim();
+
+
+ if(!name||!mobile||!password){
+
+  msg(
+   "सभी जानकारी भरें",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ if(!/^[0-9]{10,15}$/.test(mobile)){
+
+  msg(
+   "सही mobile number डालें",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ if(mobile===ADMIN_MOBILE){
+
+  msg(
+   "यह mobile Admin के लिए reserved है",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ if(db.users.some(
+  u=>u.mobile===mobile
+ )){
+
+  msg(
+   "यह mobile पहले से registered है",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ const user={
+
+  id:Date.now(),
+
+  name:name,
+
+  mobile:mobile,
+
+  password:password,
+
+  role:"member",
+
+  active:true,
+
+  balance:0,
+
+  btc:0,
+
+  avg:0,
+
+  referral:
+   "REF"+mobile.slice(-6),
+
+  referredBy:referral
+
+ };
+
+
+ db.users.push(user);
+
+ saveDB();
+
+
+ document.getElementById(
+  "loginMobile"
+ ).value=mobile;
+
+ document.getElementById(
+  "loginPassword"
+ ).value=password;
+
+
+ showLogin();
+
+ msg(
+  "Account बन गया। अब Sign In करें।",
+  "green"
+ );
+
+}
+
+
+/* =====================================================
+ MEMBER LOGIN
+===================================================== */
+
+function memberLogin(){
+
+ const mobile=
+  document.getElementById("loginMobile")
+  .value.trim();
+
+ const password=
+  document.getElementById("loginPassword")
+  .value;
+
+
+ if(mobile===ADMIN_MOBILE){
+
+  msg(
+   "Admin के लिए Admin Login इस्तेमाल करें",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ const u=db.users.find(
+  x=>
+   x.mobile===mobile &&
+   x.password===password &&
+   x.role==="member"
+ );
+
+
+ if(!u){
+
+  msg(
+   "Mobile या Password गलत है",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ if(!u.active){
+
+  msg(
+   "आपका account block है",
+   "red"
+  );
+
+  return;
+
+ }
+
+
+ startApp(u);
+
+}
+
+
+/* =====================================================
+ ADMIN LOGIN
+===================================================== */
+
+function adminLogin(){
+
+ const mobile=
+  document.getElementById("adminMobile")
+  .value.trim();
+
+ const password=
+  document.getElementById("adminPassword")
+  .value;
+
+
+ if(
+  mobile===ADMIN_MOBILE &&
+  password===ADMIN_PASSWORD
+ ){
+
+  const admin={
+
+   id:0,
+
+   name:"Admin",
+
+   mobile:ADMIN_MOBILE,
+
+   password:ADMIN_PASSWORD,
+
+   role:"admin",
+
+   active:true
+
+  };
+
+  startApp(admin);
+
+  return;
+
+ }
+
+
+ msg(
+  "Admin Mobile या Password गलत है",
+  "red"
+ );
+
+}
+
+
+/* =====================================================
+ START APP
+===================================================== */
+
+function startApp(user){
+
+ currentUser=user;
+
+ document
+  .getElementById("auth")
+  .classList.add("hidden");
+
+ document
+  .getElementById("app")
+  .classList.remove("hidden");
+
+
+ const isAdmin=
+  user.role==="admin";
+
+
+ document
+  .getElementById("memberNav")
+  .classList.toggle(
+   "hidden",
+   isAdmin
+  );
+
+
+ document
+  .getElementById("adminNav")
+  .classList.toggle(
+   "hidden",
+   !isAdmin
+  );
+
+
+ document
+  .getElementById("appTitle")
+  .textContent=
+  isAdmin?
+  "👑 ADMIN PANEL":
+  "₿ BTC PRO";
+
+
+ document
+  .getElementById("userInfo")
+  .textContent=
+  user.name+
+  " | "+
+  user.role.toUpperCase();
+
+
+ document
+  .querySelectorAll(".page")
+  .forEach(x=>
+   x.classList.remove("active")
+  );
+
+
+ if(isAdmin){
+
+  document
+   .getElementById("adminHome")
+   .classList.add("active");
+
+  updateAdmin();
+
+ }else{
+
+  document
+   .getElementById("dashboard")
+   .classList.add("active");
+
+  updateAll();
+
+ }
+
+}
+
+
+function logout(){
+
+ currentUser=null;
+
+ if(socket){
+
+  try{
+   socket.close();
+  }catch(e){}
+
+ }
+
+ document
+  .getElementById("app")
+  .classList.add("hidden");
+
+ document
+  .getElementById("auth")
+  .classList.remove("hidden");
+
+ showLogin();
+
+}
+
+
+/* =====================================================
+ NAVIGATION
+===================================================== */
+
+function openPage(id){
+
+ if(!currentUser)return;
+
+
+ if(
+  currentUser.role!=="admin" &&
+  id.startsWith("admin")
+ ){
+  retur
