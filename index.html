@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Pro Trading System</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#07111d;color:#fff;font:14px Arial,sans-serif}
+header{padding:12px;background:#0c1b2b;position:sticky;top:0;z-index:20}
+h2,h3{margin:5px 0 10px}
+.nav{display:flex;gap:5px;overflow:auto;background:#091725;padding:7px;position:sticky;top:58px;z-index:19}
+button,input,select{background:#12243a;color:#fff;border:1px solid #35516d;border-radius:6px;padding:9px}
+button{cursor:pointer;font-weight:bold}
+button:hover{background:#1b3855}
+input,select{width:100%;margin:4px 0}
+.page{display:none;max-width:1150px;margin:auto;padding:10px}
+.page.active{display:block}
+.card{background:#0d1d2e;border:1px solid #263d54;border-radius:9px;padding:12px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+@media(max-width:750px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:450px){.grid{grid-template-columns:1fr 1fr}}
+.value{font-size:18px;font-weight:bold}
+.small{font-size:12px;color:#91a7ba}
+.green{color:#00d084}.red{color:#ff526d}.yellow{color:#ffd54a}
+#chart{width:100%;height:430px;background:#081521;border:1px solid #263d54;border-radius:8px;touch-action:none}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row>*{flex:1;min-width:100px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:7px;border-bottom:1px solid #263d54;text-align:left;font-size:12px}
+.scroll{overflow:auto}
+.badge{padding:3px 7px;border-radius:10px;background:#263d54}
+.buy{background:#075c45}.sell{background:#75283a}
+hr{border:0;border-top:1px solid #263d54}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>₿ BTC PRO TRADING SYSTEM</h2>
+<div class="small">Live BTC/USDT • Demo / Paper Trading</div>
+</header>
+
+<!-- ================= LOGIN ================= -->
+<div id="login" class="page active">
+<div class="card">
+<h2>🔐 Login</h2>
+<input id="lm" placeholder="Mobile Number">
+<input id="lp" type="password" placeholder="Password">
+<button onclick="login()" style="width:100%">LOGIN</button>
+<hr>
+<div class="small">
+Admin: 9999999999 / admin123<br>
+Member: 8888888888 / member123
+</div>
+</div>
+</div>
+
+<div id="app" style="display:none">
+
+<div class="nav">
+<button onclick="page('dash')">📊 Dashboard</button>
+<button onclick="page('trade')">🛒 Buy/Sell</button>
+<button onclick="page('wallet')">💰 Wallet</button>
+<button onclick="page('ref')">🔗 Referral</button>
+<button id="adminBtn" onclick="page('admin')">👑 Admin</button>
+<button onclick="logout()">Logout</button>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<section id="dash" class="page active">
+
+<div class="card">
+<div class="small">BTC/USDT</div>
+<div id="price" class="value">Connecting...</div>
+<div id="conn" class="small">Connecting...</div>
+</div>
+
+<div class="card">
+<div class="row">
+<button onclick="tf('1m')">1M</button>
+<button onclick="tf('5m')">5M</button>
+<button onclick="tf('15m')">15M</button>
+<button onclick="tf('30m')">30M</button>
+<button onclick="tf('1h')">1H</button>
+<button onclick="liveChart()">LIVE</button>
+<button onclick="resetChart()">RESET</button>
+<button onclick="enableSound()">🔔 SOUND</button>
+</div>
+<br>
+<canvas id="chart"></canvas>
+<div class="small">Chart को finger/mouse से आगे-पीछे drag करें। Wheel/pinch के अनुसार zoom करें।</div>
+</div>
+
+<div class="card">
+<h3>📈 Indicators</h3>
+<label><input type="checkbox" id="st" checked onchange="draw()"> SuperTrend</label>
+<label><input type="checkbox" id="ema" checked onchange="draw()"> EMA 20</label>
+<label><input type="checkbox" id="rsi" onchange="indicatorText()"> RSI</label>
+<label><input type="checkbox" id="macd" onchange="indicatorText()"> MACD</label>
+<label><input type="checkbox" id="vwap" onchange="draw()"> VWAP</label>
+</div>
+
+<div class="grid">
+<div class="card"><div class="small">TREND</div><div id="trend" class="value">--</div></div>
+<div class="card"><div class="small">SIGNAL</div><div id="sig" class="value">WAIT</div></div>
+<div class="card"><div class="small">ENTRY</div><div id="entry" class="value">--</div></div>
+<div class="card"><div class="small">ATR</div><div id="atr" class="value">--</div></div>
+<div class="card"><div class="small">SL</div><div id="sl" class="value">--</div></div>
+<div class="card"><div class="small">TP1</div><div id="tp1" class="value green">--</div></div>
+<div class="card"><div class="small">TP2</div><div id="tp2" class="value green">--</div></div>
+<div class="card"><div class="small">TP3</div><div id="tp3" class="value green">--</div></div>
+</div>
+
+<div class="card">
+<h3>Indicator Values</h3>
+<div id="ivals">Waiting...</div>
+</div>
+
+</section>
+
+<!-- ================= BUY / SELL ================= -->
+<section id="trade" class="page">
+
+<div class="card">
+<h2>🛒 Buy / Sell</h2>
+
+<div class="grid">
+<div><div class="small">Balance</div><div id="tb" class="value">₹0</div></div>
+<div><div class="small">BTC Quantity</div><div id="tq" class="value">0</div></div>
+<div><div class="small">Current Price</div><div id="tp" class="value">--</div></div>
+<div><div class="small">Unrealized P/L</div><div id="tpl" class="value">₹0</div></div>
+</div>
+
+<hr>
+
+<label>Quantity (BTC)</label>
+<input id="qty" type="number" step="0.000001" min="0">
+
+<div class="row">
+<button class="buy" onclick="buy()">🟢 BUY</button>
+<button class="sell" onclick="sell()">🔴 SELL</button>
+</div>
+
+<div class="small">
+BUY पर balance घटेगा और BTC quantity बढ़ेगी।<br>
+SELL पर BTC quantity घटेगी और sale amount balance में आएगा।
+</div>
+</div>
+
+<div class="card">
+<h3>Open Position</h3>
+<div id="position">No Position</div>
+</div>
+
+<div class="card">
+<h3>Trade History</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>Time</th><th>Side</th><th>Qty</th><th>Price</th><th>Value</th><th>P/L</th></tr></thead>
+<tbody id="trades"></tbody>
+</table>
+</div>
+</div>
+
+</section>
+
+<!-- ================= WALLET ================= -->
+<section id="wallet" class="page">
+
+<div class="card">
+<h2>💰 Wallet</h2>
+<div class="grid">
+<div><div class="small">Balance</div><div id="wb" class="value">₹0</div></div>
+<div><div class="small">BTC</div><div id="wbtc" class="value">0</div></div>
+<div><div class="small">Pending Deposit</div><div id="wd">₹0</div></div>
+<div><div class="small">Pending Withdrawal</div><div id="ww">₹0</div></div>
+</div>
+</div>
+
+<div class="card">
+<h3>📥 Deposit Request</h3>
+<input id="da" type="number" min="1" placeholder="Amount">
+<input id="dr" placeholder="UTR / Transaction ID">
+<button onclick="deposit()">SUBMIT DEPOSIT</button>
+<div class="small">Admin approval के बाद demo balance में credit होगा।</div>
+</div>
+
+<div class="card">
+<h3>📤 Withdrawal Request</h3>
+<input id="wa" type="number" min="1" placeholder="Amount">
+<input id="waccount" placeholder="Wallet / Bank Details">
+<button onclick="withdraw()">SUBMIT WITHDRAWAL</button>
+<div class="small">Admin approval के बाद demo balance से amount deduct होगा।</div>
+</div>
+
+<div class="card">
+<h3>Transaction History</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>Type</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+<tbody id="mytx"></tbody>
+</table>
+</div>
+</div>
+
+</section>
+
+<!-- ================= REFERRAL ================= -->
+<section id="ref" class="page">
+
+<div class="card">
+<h2>🔗 Referral</h2>
+<div class="small">Referral Code</div>
+<div id="rcode" class="value"></div>
+<div class="small">Referral Link</div>
+<input id="rlink" readonly>
+<button onclick="copyRef()">COPY LINK</button>
+</div>
+
+<div class="grid">
+<div class="card"><div class="small">Referrals</div><div id="rcount" class="value">0</div></div>
+<div class="card"><div class="small">Commission</div><div id="rcom" class="value">₹0</div></div>
+</div>
+
+</section>
+
+<!-- ================= ADMIN ================= -->
+<section id="admin" class="page">
+
+<div class="card">
+<h2>👑 ADMIN CONTROL CENTER</h2>
+<div class="small">Members • Balance • Buy/Sell • Deposit • Withdrawal • Referral</div>
+</div>
+
+<!-- MEMBER ADD -->
+<div class="card">
+<h3>👤 Add Member</h3>
+<div class="row">
+<input id="mn" placeholder="Name">
+<input id="mm" placeholder="Mobile">
+<input id="mp" placeholder="Password">
+</div>
+<button onclick="addMember()">ADD MEMBER</button>
+</div>
+
+<!-- MEMBER BALANCE -->
+<div class="card">
+<h3>💵 Member Balance Control</h3>
+
+<select id="bm"></select>
+<input id="ba" type="number" min="0" placeholder="Amount">
+<input id="br" placeholder="Reason">
+
+<div class="row">
+<button onclick="addMoney()">➕ ADD BALANCE</button>
+<button onclick="minusMoney()">➖ MINUS BALANCE</button>
+</div>
+
+<div class="small">
+Admin द्वारा balance बदलने पर पुराना balance, बदलाव और नया balance history में save होगा।
+</div>
+</div>
+
+<!-- MEMBERS -->
+<div class="card">
+<h3>👥 Members</h3>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Name</th><th>Mobile</th><th>Balance</th><th>BTC</th><th>P/L</th><th>Status</th><th>Action</th>
+</tr>
+</thead>
+<tbody id="members"></tbody>
+</table>
+</div>
+</div>
+
+<!-- DEPOSIT -->
+<div class="card">
+<h3>📥 Deposit Approval</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>Member</th><th>Amount</th><th>UTR</th><th>Action</th></tr></thead>
+<tbody id="deps"></tbody>
+</table>
+</div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="card">
+<h3>📤 Withdrawal Approval</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>Member</th><th>Amount</th><th>Account</th><th>Action</th></tr></thead>
+<tbody id="withs"></tbody>
+</table>
+</div>
+</div>
+
+<!-- ADMIN TRANSACTION HISTORY -->
+<div class="card">
+<h3>🧾 Admin Balance History</h3>
+<div class="scroll">
+<table>
+<thead><tr><th>Time</th><th>Member</th><th>Type</th><th>Old</th><th>Change</th><th>New</th><th>Reason</th></tr></thead>
+<tbody id="balhist"></tbody>
+</table>
+</div>
+</div>
+
+</section>
+
+</div>
+
+<script>
+/* =========================================================
+   PART 1 — LOCAL DEMO DATABASE
+========================================================= */
+
+const KEY="BTC_PRO_DEMO_V3";
+
+let db=JSON.parse(localStorage.getItem(KEY)||"null");
+
+if(!db){
+ db={
+  users:[
+   {
+    id:1,name:"Admin",mobile:"9999999999",pass:"admin123",
+    role:"admin",active:true,balance:0,btc:0,avg:0,
+    referral:"ADMIN"
+   },
+   {
+    id:2,name:"Demo Member",mobile:"8888888888",pass:"member123",
+    role:"member",active:true,balance:10000,btc:0,avg:0,
+    referral:"REF888888"
+   }
+  ],
+  tx:[],
+  trades:[],
+  balanceHistory:[]
+ };
+ save();
+}
+
+let me=null;
+
+
+/* =========================================================
+   PART 2 — DATABASE FUNCTIONS
+========================================================= */
+
+function save(){
+ localStorage.setItem(KEY,JSON.stringify(db));
+}
+
+function uid(){
+ return Date.now()+Math.floor(Math.random()*1000);
+}
+
+function getUser(id){
+ return db.users.find(x=>x.id==id);
+}
+
+
+/* =========================================================
+   PART 3 — LOGIN
+========================================================= */
+
+function login(){
+
+ const mobile=document.getElementById("lm").value.trim();
+ const pass=document.getElementById("lp").value;
+
+ const u=db.users.find(
+  x=>x.mobile===mobile&&x.pass===pass
+ );
+
+ if(!u){
+  alert("Mobile या Password गलत है");
+  return;
+ }
+
+ if(!u.active){
+  alert("Account Blocked");
+  return;
+ }
+
+ me=u;
+
+ document.getElementById("login").classList.remove("active");
+ document.getElementById("app").style.display="block";
+
+ document.getElementById("adminBtn").style.display=
+  me.role==="admin"?"block":"none";
+
+ updateAll();
+}
+
+function logout(){
+ me=null;
+ document.getElementById("app").style.display="none";
+ document.getElementById("login").classList.add("active");
+}
+
+
+/* =========================================================
+   PART 4 — PAGE
+========================================================= */
+
+function page(id){
+
+ if(id==="admin"&&me?.role!=="admin"){
+  alert("Admin only");
+  return;
+ }
+
+ document.querySelectorAll(".page").forEach(x=>{
+  if(x.id!=="login")x.classList.remove("active");
+ });
+
+ document.getElementById(id).classList.add("active");
+
+ updateAll();
+}
+
+
+/* =========================================================
+   PART 5 — BUY
+========================================================= */
+
+function currentPrice(){
+ return candles.length?
+  candles[candles.length-1].close:0;
+}
+
+function buy(){
+
+ if(!me||me.role!=="member"){
+  alert("Member account से Buy करें");
+  return;
+ }
+
+ const q=Number(document.getElementById("qty").value);
+ const p=currentPrice();
+
+ if(!q||q<=0||!p){
+  alert("Quantity / price invalid");
+  return;
+ }
+
+ const value=q*p;
+
+ if(value>me.balance){
+  alert("Balance कम है");
+  return;
+ }
+
+ const oldQty=me.btc||0;
+ const oldAvg=me.avg||0;
+
+ me.avg=
+  oldQty+q===0?
+  0:
+  ((oldQty*oldAvg)+(q*p))/(oldQty+q);
+
+ me.btc=oldQty+q;
+ me.balance-=value;
+
+ db.trades.push({
+  id:uid(),userId:me.id,
+  side:"BUY",qty:q,price:p,value,
+  pnl:0,time:new Date().toLocaleString()
+ });
+
+ save();
+ updateAll();
+
+ alert("BUY completed");
+}
+
+
+/* =========================================================
+   PART 6 — SELL
+========================================================= */
+
+function sell(){
+
+ if(!me||me.role!=="member"){
+  alert("Member account से Sell करें");
+  return;
+ }
+
+ const q=Number(document.getElementById("qty").value);
+ const p=currentPrice();
+
+ if(!q||q<=0||!p){
+  alert("Quantity / price invalid");
+  return;
+ }
+
+ if(q>me.btc){
+  alert("इतना BTC available नहीं है");
+  return;
+ }
+
+ const value=q*p;
+ const pnl=(p-(me.avg||p))*q;
+
+ me.btc-=q;
+ me.balance+=value;
+
+ if(me.btc<=0.000000001){
+  me.btc=0;
+  me.avg=0;
+ }
+
+ db.trades.push({
+  id:uid(),userId:me.id,
+  side:"SELL",qty:q,price:p,value,
+  pnl,time:new Date().toLocaleString()
+ });
+
+ save();
+ updateAll();
+
+ alert(
+  "SELL completed\n"+
+  "P/L: ₹"+pnl.toFixed(2)
+ );
+}
+
+
+/* =========================================================
+   PART 7 — P/L
+========================================================= */
+
+function getPnL(u){
+
+ const p=currentPrice();
+
+ if(!u||!u.btc)return 0;
+
+ return (p-(u.avg||p))*u.btc;
+}
+
+
+/* =========================================================
+   PART 8 — DEPOSIT
+========================================================= */
+
+function deposit(){
+
+ if(!me||me.role!=="member")return;
+
+ const amount=Number(document.getElementById("da").value);
+ const ref=document.getElementById("dr").value.trim();
+
+ if(amount<=0||!ref){
+  alert("Amount और UTR भरें");
+  return;
+ }
+
+ db.tx.push({
+  id:uid(),userId:me.id,
+  type:"deposit",amount,ref,
+  status:"pending",
+  time:new Date().toLocaleString()
+ });
+
+ save();
+
+ document.getElementById("da").value="";
+ document.getElementById("dr").value="";
+
+ updateAll();
+
+ alert("Deposit request Admin को भेज दी गई");
+}
+
+
+/* =========================================================
+   PART 9 — WITHDRAWAL
+========================================================= */
+
+function withdraw(){
+
+ if(!me||me.role!=="member")return;
+
+ const amount=Number(document.getElementById("wa").value);
+ const account=document.getElementById("waccount").value.trim();
+
+ if(amount<=0||!account){
+  alert("Amount और account details भरें");
+  return;
+ }
+
+ if(amount>me.balance){
+  alert("Available balance कम है");
+  return;
+ }
+
+ db.tx.push({
+  id:uid(),userId:me.id,
+  type:"withdrawal",amount,account,
+  status:"pending",
+  time:new Date().toLocaleString()
+ });
+
+ save();
+
+ document.getElementById("wa").value="";
+ document.getElementById("waccount").value="";
+
+ updateAll();
+
+ alert("Withdrawal request Admin को भेज दी गई");
+}
+
+
+/* =========================================================
+   PART 10 — ADMIN ADD BALANCE
+========================================================= */
+
+function addMoney(){
+
+ if(me?.role!=="admin")return;
+
+ const id=Number(document.getElementById("bm").value);
+ const amount=Number(document.getElementById("ba").value);
+ const reason=document.getElementById("br").value.trim()||"Admin Add";
+
+ const u=getUser(id);
+
+ if(!u||amount<=0){
+  alert("Member और amount सही चुनें");
+  return;
+ }
+
+ const old=u.balance||0;
+
+ u.balance=old+amount;
+
+ db.balanceHistory.push({
+  id:uid(),admin:me.id,userId:u.id,
+  type:"ADD",old,change:amount,
+  newBalance:u.balance,reason,
+  time:new Date().toLocaleString()
+ });
+
+ save();
+
+ document.getElementById("ba").value="";
+ document.getElementById("br").value="";
+
+ updateAll();
+
+ alert("Balance Added\nNew Balance: ₹"+u.balance.toFixed(2));
+}
+
+
+/* =========================================================
+   PART 11 — ADMIN MINUS BALANCE
+========================================================= */
+
+function minusMoney(){
+
+ if(me?.role!=="admin")return;
+
+ const id=Number(document.getElementById("bm").value);
+ const amount=Number(document.getElementById("ba").value);
+ const reason=document.getElementById("br").value.trim()||"Admin Minus";
+
+ const u=getUser(id);
+
+ if(!u||amount<=0){
+  alert("Member और amount सही चुनें");
+  return;
+ }
+
+ if(amount>u.balance){
+  alert("Member balance से ज्यादा minus नहीं कर सकते");
+  return;
+ }
+
+ const old=u.balance;
+
+ u.balance=old-amount;
+
+ db.balanceHistory.push({
+  id:uid(),admin:me.id,userId:u.id,
+  type:"MINUS",old,change:-amount,
+  newBalance:u.balance,reason,
+  time:new Date().toLocaleString()
+ });
+
+ save();
+
+ document.getElementById("ba").value="";
+ document.getElementById("br").value="";
+
+ updateAll();
+
+ alert("Balance Minus\nNew Balance: ₹"+u.balance.toFixed(2));
+}
+
+
+/* =========================================================
+   PART 12 — ADD MEMBER
+========================================================= */
+
+function addMember(){
+
+ if(me?.role!=="admin")return;
+
+ const name=document.getElementById("mn").value.trim();
+ const mobile=document.getElementById("mm").value.trim();
+ const pass=document.getElementById("mp").value;
+
+ if(!name||!mobile||!pass){
+  alert("सारी जानकारी भरें");
+  return;
+ }
+
+ if(db.users.some(x=>x.mobile===mobile)){
+  alert("Mobile पहले से मौजूद है");
+  return;
+ }
+
+ db.users.push({
+  id:uid(),
+  name,mobile,pass,
+  role:"member",
+  active:true,
+  balance:0,
+  btc:0,
+  avg:0,
+  referral:"REF"+mobile.slice(-6)+
+   Math.floor(Math.random()*100)
+ });
+
+ save();
+
+ document.getElementById("mn").value="";
+ document.getElementById("mm").value="";
+ document.getElementById("mp").value="";
+
+ updateAll();
+
+ alert("Member Added");
+}
+
+
+/* =========================================================
+   PART 13 — BLOCK / UNBLOCK / DELETE
+========================================================= */
+
+function toggleUser(id){
+
+ const u=getUser(id);
+
+ if(!u||u.role==="admin")return;
+
+ u.active=!u.active;
+
+ save();
+ updateAll();
+}
+
+function deleteUser(id){
+
+ const u=getUser(id);
+
+ if(!u||u.role==="admin")return;
+
+ if(!confirm("इस member को delete करना है?"))return;
+
+ db.users=db.users.filter(x=>x.id!==id);
+
+ save();
+ updateAll();
+}
+
+
+/* =========================================================
+   PART 14 — ADMIN DEPOSIT APPROVAL
+========================================================= */
+
+function approveDeposit(id){
+
+ const t=db.tx.find(x=>x.id===id);
+
+ if(!t||t.status!=="pending")return;
+
+ const u=getUser(t.userId);
+
+ if(!u)return;
+
+ const old=u.balance;
+
+ u.balance+=t.amount;
+ t.status="approved";
+
+ db.balanceHistory.push({
+  id:uid(),admin:me.id,userId:u.id,
+  type:"DEPOSIT",old,
+  change:t.amount,
+  newBalance:u.balance,
+  reason:"Deposit Approved",
+  time:new Date().toLocaleString()
+ });
+
+ save();
+ updateAll();
+}
+
+function rejectDeposit(id){
+
+ const t=db.tx.find(x=>x.id===id);
+
+ if(!t)return;
+
+ t.status="rejected";
+
+ save();
+ updateAll();
+}
+
+
+/* =========================================================
+   PART 15 — ADMIN WITHDRAWAL APPROVAL
+========================================================= */
+
+function approveWithdrawal(id){
+
+ const t=db.tx.find(x=>x.id===id);
+
+ if(!t||t.status!=="pending")return;
+
+ const u=getUser(t.userId);
+
+ if(!u)return;
+
+ if(t.amount>u.balance){
+  t.status="rejected";
+  save();
+  updateAll();
+  alert("Balance कम है");
+  return;
+ }
+
+ const old=u.balance;
+
+ u.balance-=t.amount;
+ t.status="approved";
+
+ db.balanceHistory.push({
+  id:uid(),admin:me.id,userId:u.id,
+  type:"WITHDRAWAL",old,
+  change:-t.amount,
+  newBalance:
