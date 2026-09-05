@@ -1469,7 +1469,372 @@ setInterval(
   },
   1000
 );
+/* ================================
+   SUPERTREND ADD-ON
+   Existing Live Candle code को
+   छेड़े बिना
+================================ */
 
+const ST_ATR = 10;
+const ST_MULT = 3.0;
+
+const ST_SL = 0.50;
+const ST_TP1 = 0.50;
+const ST_TP2 = 1.00;
+const ST_TP3 = 1.50;
+
+
+/* ---------- ATR ---------- */
+
+function stATR(i){
+
+  if(i < ST_ATR) return null;
+
+  let sum = 0;
+
+  for(let x = i - ST_ATR + 1; x <= i; x++){
+
+    const c = candles[x];
+    const p = candles[x - 1];
+
+    const tr = Math.max(
+      c.high - c.low,
+      Math.abs(c.high - p.close),
+      Math.abs(c.low - p.close)
+    );
+
+    sum += tr;
+  }
+
+  return sum / ST_ATR;
+}
+
+
+/* ---------- SuperTrend ---------- */
+
+function getST(){
+
+  if(candles.length < ST_ATR + 2)
+    return [];
+
+  const out = [];
+
+  let upperPrev = null;
+  let lowerPrev = null;
+  let trendPrev = 1;
+
+  for(let i = 0; i < candles.length; i++){
+
+    const atr = stATR(i);
+
+    if(atr === null){
+
+      out.push({
+        value:null,
+        trend:0
+      });
+
+      continue;
+    }
+
+    const c = candles[i];
+
+    const mid =
+      (c.high + c.low) / 2;
+
+    let upper =
+      mid + ST_MULT * atr;
+
+    let lower =
+      mid - ST_MULT * atr;
+
+
+    if(
+      upperPrev !== null &&
+      candles[i-1].close <= upperPrev
+    ){
+
+      upper =
+        Math.min(
+          upper,
+          upperPrev
+        );
+    }
+
+
+    if(
+      lowerPrev !== null &&
+      candles[i-1].close >= lowerPrev
+    ){
+
+      lower =
+        Math.max(
+          lower,
+          lowerPrev
+        );
+    }
+
+
+    let trend = trendPrev;
+
+
+    if(
+      trendPrev === -1 &&
+      c.close > upper
+    ){
+
+      trend = 1;
+
+    }
+    else if(
+      trendPrev === 1 &&
+      c.close < lower
+    ){
+
+      trend = -1;
+
+    }
+
+
+    out.push({
+
+      value:
+        trend === 1
+          ? lower
+          : upper,
+
+      trend:trend
+
+    });
+
+
+    upperPrev = upper;
+    lowerPrev = lower;
+    trendPrev = trend;
+  }
+
+  return out;
+}
+
+
+/* ---------- Trading Levels ---------- */
+
+function updateSTLevels(){
+
+  if(candles.length < ST_ATR + 2)
+    return;
+
+
+  const st = getST();
+
+  const last =
+    st[st.length - 1];
+
+  const previous =
+    st[st.length - 2];
+
+
+  const price =
+    candles[
+      candles.length - 1
+    ].close;
+
+
+  let signal = "WAIT";
+
+
+  if(
+    previous.trend === -1 &&
+    last.trend === 1
+  ){
+
+    signal = "BUY";
+
+  }
+  else if(
+    previous.trend === 1 &&
+    last.trend === -1
+  ){
+
+    signal = "SELL";
+
+  }
+
+
+  const entry = price;
+
+  let sl;
+  let tp1;
+  let tp2;
+  let tp3;
+
+
+  if(last.trend === 1){
+
+    sl =
+      entry *
+      (1 - ST_SL / 100);
+
+    tp1 =
+      entry *
+      (1 + ST_TP1 / 100);
+
+    tp2 =
+      entry *
+      (1 + ST_TP2 / 100);
+
+    tp3 =
+      entry *
+      (1 + ST_TP3 / 100);
+
+  }
+  else{
+
+    sl =
+      entry *
+      (1 + ST_SL / 100);
+
+    tp1 =
+      entry *
+      (1 - ST_TP1 / 100);
+
+    tp2 =
+      entry *
+      (1 - ST_TP2 / 100);
+
+    tp3 =
+      entry *
+      (1 - ST_TP3 / 100);
+
+  }
+
+
+  /*
+     Agar ye IDs tumhare HTML me hain
+     to values automatically dikhengi.
+  */
+
+  const trend =
+    document.getElementById("trend");
+
+  const signalBox =
+    document.getElementById("signal");
+
+  const entryBox =
+    document.getElementById("entry");
+
+  const slBox =
+    document.getElementById("sl");
+
+  const tp1Box =
+    document.getElementById("tp1");
+
+  const tp2Box =
+    document.getElementById("tp2");
+
+  const tp3Box =
+    document.getElementById("tp3");
+
+  const atrBox =
+    document.getElementById("atr");
+
+
+  if(trend){
+
+    trend.textContent =
+      last.trend === 1
+        ? "BULLISH"
+        : "BEARISH";
+
+  }
+
+
+  if(signalBox){
+
+    signalBox.textContent =
+      signal;
+
+  }
+
+
+  if(entryBox){
+
+    entryBox.textContent =
+      entry.toFixed(2);
+
+  }
+
+
+  if(slBox){
+
+    slBox.textContent =
+      sl.toFixed(2);
+
+  }
+
+
+  if(tp1Box){
+
+    tp1Box.textContent =
+      tp1.toFixed(2);
+
+  }
+
+
+  if(tp2Box){
+
+    tp2Box.textContent =
+      tp2.toFixed(2);
+
+  }
+
+
+  if(tp3Box){
+
+    tp3Box.textContent =
+      tp3.toFixed(2);
+
+  }
+
+
+  if(atrBox){
+
+    const a =
+      stATR(
+        candles.length - 1
+      );
+
+    atrBox.textContent =
+      a === null
+        ? "--"
+        : a.toFixed(2);
+
+  }
+
+}
+
+
+/* ---------- Existing updateScreen ke
+   baad SuperTrend update ---------- */
+
+const oldUpdateScreen =
+  window.updateScreen;
+
+window.updateScreen =
+  function(){
+
+    if(
+      typeof oldUpdateScreen ===
+      "function"
+    ){
+
+      oldUpdateScreen();
+
+    }
+
+    updateSTLevels();
+
+  };
 </script>
 
 </body>
