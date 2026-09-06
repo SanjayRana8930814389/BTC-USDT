@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Battle Terminal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: #0b0e14; color: #d1d4dc; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: #161a25; padding: 10px 15px; display: flex;
+      justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2e39;
+    }
+    .brand { color: #00f2fe; font-weight: bold; font-size: 16px; }
+    .balance-box { background: #1e222d; padding: 4px 10px; border-radius: 4px; font-size: 13px; border: 1px solid #363c4e; }
+    .balance-box span { color: #26a69a; font-weight: bold; }
+
+    /* Main Chart Section */
+    .chart-container { width: 100%; height: 500px; background: #131722; position: relative; }
+
+    /* Timeframe Strip */
+    .tf-bar {
+      background: #131722; padding: 8px 15px; display: flex; gap: 8px;
+      border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39;
+    }
+    .tf-btn {
+      background: #1e222d; color: #848e9c; border: 1px solid #2a2e39;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+    }
+    .tf-btn.active, .tf-btn:hover { background: #2962ff; color: #fff; border-color: #2962ff; }
+
+    /* Controls & Settings Section (Chart ke Niche Grid) */
+    .controls-wrapper {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      padding: 15px;
+      background: #0b0e14;
+    }
+
+    .card { background: #1e222d; padding: 12px; border-radius: 6px; border: 1px solid #2a2e39; }
+    .card h3 { font-size: 12px; color: #848e9c; margin-bottom: 8px; text-transform: uppercase; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .input-box { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+    label { font-size: 11px; color: #b2b9c0; }
+    input, select {
+      background: #0b0e14; border: 1px solid #363c4e; color: #fff;
+      padding: 6px; border-radius: 4px; font-size: 11px; width: 100%;
+    }
+
+    .btn-save { width: 100%; background: #2962ff; color: white; border: none; padding: 7px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; color: white; }
+    .btn-buy { background: #089981; } .btn-sell { background: #f23645; }
+
+    .line-info { font-size: 11px; padding: 5px; border-radius: 3px; margin-top: 4px; }
+    .line-tp { background: rgba(8, 153, 129, 0.2); color: #089981; border-left: 3px solid #089981; }
+    .line-sl { background: rgba(242, 54, 69, 0.2); color: #f23645; border-left: 3px solid #f23645; }
+    .line-entry { background: rgba(41, 98, 255, 0.2); color: #2962ff; border-left: 3px solid #2962ff; }
+
+    /* Bottom Panel */
+    .bottom-panel { background: #131722; border-top: 1px solid #2a2e39; padding: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+    th { background: #1e222d; color: #848e9c; padding: 6px; }
+    td { padding: 6px; border-bottom: 1px solid #2a2e39; }
+
+    /* Alert Banner */
+    .alert-banner {
+      display: none;
+      background: #2962ff;
+      color: white;
+      padding: 8px 12px;
+      font-size: 12px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">TRADE BATTLE TERMINAL</div>
+    <div class="balance-box">Demo Balance: $<span id="display-balance">10000.00</span> USDT</div>
+  </header>
+
+  <!-- Screen Alert Banner -->
+  <div id="alert-banner" class="alert-banner">🔔 Alert Notification Active</div>
+
+  <!-- Chart Container -->
+  <div class="chart-container" id="chart-box"></div>
+
+  <!-- Timeframe Selector -->
+  <div class="tf-bar">
+    <span style="font-size:11px; color:#848e9c; line-height:22px;">Timeframe:</span>
+    <button class="tf-btn" onclick="changeTimeframe('1')">1m</button>
+    <button class="tf-btn" onclick="changeTimeframe('5')">5m</button>
+    <button class="tf-btn active" onclick="changeTimeframe('15')">15m</button>
+    <button class="tf-btn" onclick="changeTimeframe('60')">1h</button>
+    <button class="tf-btn" onclick="changeTimeframe('240')">4h</button>
+    <button class="tf-btn" onclick="changeTimeframe('D')">1D</button>
+  </div>
+
+  <!-- Controls & Settings Panels -->
+  <div class="controls-wrapper">
+    
+    <!-- WhatsApp Alert Settings -->
+    <div class="card">
+      <h3>WhatsApp Alerts Setup</h3>
+      <div class="input-box">
+        <label>WhatsApp Number (Country code ke sath, e.g. 919876543210)</label>
+        <input type="text" id="wa-phone" placeholder="91XXXXXXXXXX">
+      </div>
+      <div class="input-box">
+        <label>CallMeBot API Key</label>
+        <input type="text" id="wa-apikey" placeholder="Enter API Key">
+      </div>
+      <button class="btn-save" style="background:#25D366;" onclick="saveWhatsAppSettings()">Save WhatsApp Config</button>
+    </div>
+
+    <!-- Demo Wallet -->
+    <div class="card">
+      <h3>Demo Account Wallet</h3>
+      <div class="grid-2">
+        <input type="number" id="custom-balance-input" placeholder="Set Balance">
+        <button class="btn-save" onclick="updateBalance()">Set Balance</button>
+      </div>
+    </div>
+
+    <!-- SuperTrend Settings -->
+    <div class="card">
+      <h3>SuperTrend Settings</h3>
+      <div class="grid-2">
+        <div class="input-box"><label>ATR Length</label><input type="number" id="st-length" value="10"></div>
+        <div class="input-box"><label>Multiplier</label><input type="number" step="0.1" id="st-mult" value="3.0"></div>
+      </div>
+      <button class="btn-save" onclick="saveSettings()">Save SuperTrend</button>
+    </div>
+
+    <!-- Targets & Stop Loss -->
+    <div class="card">
+      <h3>Targets & Stop Loss</h3>
+      <div class="grid-3">
+        <div class="input-box"><label>TP1 (%)</label><input type="number" step="0.1" id="tp1-val" value="1.0"></div>
+        <div class="input-box"><label>TP2 (%)</label><input type="number" step="0.1" id="tp2-val" value="2.0"></div>
+        <div class="input-box"><label>TP3 (%)</label><input type="number" step="0.1" id="tp3-val" value="3.0"></div>
+      </div>
+      <div class="grid-2">
+        <div class="input-box"><label>Stop Loss (%)</label><input type="number" step="0.1" id="sl-val" value="1.5"></div>
+        <div class="input-box"><label>Trailing SL (%)</label><input type="number" step="0.1" id="tsl-val" value="0.5"></div>
+      </div>
+      <button class="btn-save" onclick="saveSettings()">Save TP/SL</button>
+    </div>
+
+    <!-- Execution Panel -->
+    <div class="card">
+      <h3>Execution Panel</h3>
+      <div class="input-box">
+        <label>Order Type</label>
+        <select id="order-type" onchange="toggleLimitInput()">
+          <option value="MARKET">Market Order</option>
+          <option value="LIMIT">Limit Order</option>
+        </select>
+      </div>
+      <div class="input-box" id="limit-price-group" style="display:none;">
+        <label>Limit Price (USDT)</label>
+        <input type="number" id="limit-price" placeholder="Price">
+      </div>
+      <div class="input-box"><label>Quantity (BTC)</label><input type="number" id="order-qty" value="0.01"></div>
+      <div class="grid-2" style="margin-top:6px;">
+        <button class="btn-action btn-buy" onclick="executeOrder('BUY')">BUY / LONG</button>
+        <button class="btn-action btn-sell" onclick="executeOrder('SELL')">SELL / SHORT</button>
+      </div>
+    </div>
+
+    <!-- Indicator Levels Display -->
+    <div class="card">
+      <h3>Indicator Levels & Active Alert</h3>
+      <div id="levels-display">
+        <div class="line-info line-entry">Entry Price: Pending...</div>
+        <div class="line-info line-tp">TP Levels: Auto Calculated</div>
+        <div class="line-info line-sl">Stop Loss: Auto Calculated</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Panel -->
+  <div class="bottom-panel">
+    <h3 style="font-size:12px; color:#848e9c; margin-bottom:8px;">EXECUTED ORDERS & ALERT LOGS</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th><th>Type</th><th>Side</th><th>Qty</th><th>Entry</th><th>TP1 / TP2 / TP3</th><th>SL</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="orders-table-body"></tbody>
+    </table>
+  </div>
+
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+    let currentInterval = "15";
+    const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+    // Request Browser Notification Permission
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+
+    function loadChart(interval) {
+      document.getElementById('chart-box').innerHTML = '<div id="tv_chart" style="height:100%;width:100%;"></div>';
+      new TradingView.widget({
+        "autosize": true,
+        "symbol": "BINANCE:BTCUSDT",
+        "interval": interval,
+        "timezone": "Asia/Kolkata",
+        "theme": "dark",
+        "style": "1",
+        "locale": "in",
+        "enable_publishing": false,
+        "hide_side_toolbar": false,
+        "allow_symbol_change": true,
+        "studies": ["STD;Supertrend"],
+        "container_id": "tv_chart"
+      });
+    }
+
+    function changeTimeframe(tf) {
+      currentInterval = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      loadChart(tf);
+    }
+
+    function toggleLimitInput() {
+      const type = document.getElementById('order-type').value;
+      document.getElementById('limit-price-group').style.display = (type === 'LIMIT') ? 'block' : 'none';
+    }
+
+    /* Multi-Channel Alert Dispatcher */
+    function triggerAlert(msg) {
+      // 1. Screen Banner
+      const banner = document.getElementById('alert-banner');
+      banner.innerText = '🔔 ALERT: ' + msg;
+      banner.style.display = 'block';
+      setTimeout(() => { banner.style.display = 'none'; }, 4000);
+
+      // 2. Play Audio Ringtone
+      alertAudio.play().catch(e => console.log("Audio waiting for user click interaction."));
+
+      // 3. Mobile Web Notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Trade Battle Alert 🚀", { body: msg });
+      }
+
+      // 4. WhatsApp Alert Push
+      sendWhatsAppAlert(msg);
+    }
+
+    /* WhatsApp Sending Function */
+    function sendWhatsAppAlert(message) {
+      const phone = localStorage.getItem('wa_phone');
+      const apiKey = localStorage.getItem('wa_apikey');
+
+      if (phone && apiKey) {
+        const encodedText = encodeURIComponent("🚨 TRADE BATTLE ALERT 🚨\n\n" + message);
+        const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodedText}&apikey=${apiKey}`;
+        
+        fetch(url, { mode: 'no-cors' })
+          .then(() => console.log("WhatsApp message triggered"))
+          .catch(err => console.error("WhatsApp error:", err));
+      }
+    }
+
+    function saveWhatsAppSettings() {
+      const phone = document.getElementById('wa-phone').value.trim();
+      const apiKey = document.getElementById('wa-apikey').value.trim();
+
+      if (phone && apiKey) {
+        localStorage.setItem('wa_phone', phone);
+        localStorage.setItem('wa_apikey', apiKey);
+        triggerAlert('WhatsApp configuration saved successfully!');
+      } else {
+        alert('Please enter both Phone Number and API Key.');
+      }
+    }
+
+    function saveSettings() {
+      const settings = {
+        stLength: document.getElementById('st-length').value,
+        stMult: document.getElementById('st-mult').value,
+        tp1: document.getElementById('tp1-val').value,
+        tp2: document.getElementById('tp2-val').value,
+        tp3: document.getElementById('tp3-val').value,
+        sl: document.getElementById('sl-val').value,
+        tsl: document.getElementById('tsl-val').value,
+      };
+      localStorage.setItem('trade_battle_settings', JSON.stringify(settings));
+      triggerAlert('SuperTrend & Risk Management settings saved!');
+    }
+
+    function loadSavedSettings() {
+      // Load WhatsApp Settings
+      const savedPhone = localStorage.getItem('wa_phone');
+      const savedApiKey = localStorage.getItem('wa_apikey');
+      if (savedPhone) document.getElementById('wa-phone').value = savedPhone;
+      if (savedApiKey) document.getElementById('wa-apikey').value = savedApiKey;
+
+      // Load Strategy Settings
+      const saved = localStorage.getItem('trade_battle_settings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        document.getElementById('st-length').value = settings.stLength || 10;
+        document.getElementById('st-mult').value = settings.stMult || 3.0;
+        document.getElementById('tp1-val').value = settings.tp1 || 1.0;
+        document.getElementById('tp2-val').value = settings.tp2 || 2.0;
+        document.getElementById('tp3-val').value = settings.tp3 || 3.0;
+        document.getElementById('sl-val').value = settings.sl || 1.5;
+        document.getElementById('tsl-val').value = settings.tsl || 0.5;
+      }
+
+      // Load Balance
+      const savedBal = localStorage.getItem('demo_balance');
+      if (savedBal) document.getElementById('display-balance').innerText = parseFloat(savedBal).toFixed(2);
+    }
+
+    function updateBalance() {
+      const val = document.getElementById('custom-balance-input').value;
+      if (val && val > 0) {
+        localStorage.setItem('demo_balance', val);
+        document.getElementById('display-balance').innerText = parseFloat(val).toFixed(2);
+        document.getElementById('custom-balance-input').value = '';
+        triggerAlert('Demo balance set to $' + val + ' USDT');
+      }
+    }
+
+    function executeOrder(side) {
+      const type = document.getElementById('order-type').value;
+      const qty = parseFloat(document.getElementById('order-qty').value);
+      const tp1 = parseFloat(document.getElementById('tp1-val').value);
+      const tp2 = parseFloat(document.getElementById('tp2-val').value);
+      const tp3 = parseFloat(document.getElementById('tp3-val').value);
+      const sl = parseFloat(document.getElementById('sl-val').value);
+
+      let entryPrice = 65000.00;
+      if (type === 'LIMIT') {
+        const customPrice = parseFloat(document.getElementById('limit-price').value);
+        if (customPrice > 0) entryPrice = customPrice;
+      }
+
+      let tp1Price = (side==='BUY' ? entryPrice*(1+tp1/100) : entryPrice*(1-tp1/100)).toFixed(2);
+      let tp2Price = (side==='BUY' ? entryPrice*(1+tp2/100) : entryPrice*(1-tp2/100)).toFixed(2);
+      let tp3Price = (side==='BUY' ? entryPrice*(1+tp3/100) : entryPrice*(1-tp3/100)).toFixed(2);
+      let slPrice = (side==='BUY' ? entryPrice*(1-sl/100) : entryPrice*(1+sl/100)).toFixed(2);
+
+      document.getElementById('levels-display').innerHTML = `
+        <div class="line-info line-entry">Entry: $${entryPrice}</div>
+        <div class="line-info line-tp">TP: $${tp1Price} | $${tp2Price} | $${tp3Price}</div>
+        <div class="line-info line-sl">SL: $${slPrice}</div>
+      `;
+
+      const tableBody = document.getElementById('orders-table-body');
+      const row = `
+        <tr>
+          <td>${new Date().toLocaleTimeString()}</td>
+          <td>${type}</td>
+          <td style="color:${side==='BUY'?'#089981':'#f23645'};font-weight:bold;">${side}</td>
+          <td>${qty}</td>
+          <td>$${entryPrice}</td>
+          <td>$${tp1Price} / $${tp2Price} / $${tp3Price}</td>
+          <td>$${slPrice}</td>
+          <td><span style="color:#26a69a;">EXECUTED</span></td>
+        </tr>
+      `;
+      tableBody.innerHTML = row + tableBody.innerHTML;
+
+      triggerAlert(`${side} Signal Executed!\nPrice: $${entryPrice}\nTP1: $${tp1Price}\nSL: $${slPrice}`);
+    }
+
+    window.onload = function() {
+      loadChart(currentInterval);
+      loadSavedSettings();
+    };
+  </script>
+</body>
+    </html>
+                                                                                                                  
