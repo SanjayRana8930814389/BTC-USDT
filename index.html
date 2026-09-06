@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Manoranjan</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:#0b0b0f;
+  color:#fff;
+  font-family:Arial,sans-serif;
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:#121219;
+  padding:14px;
+  border-bottom:1px solid #292933;
+}
+
+.logo{
+  font-size:25px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.search{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #333;
+  background:#1b1b24;
+  color:white;
+  outline:none;
+}
+
+nav{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-top:12px;
+}
+
+nav button{
+  white-space:nowrap;
+  border:0;
+  border-radius:20px;
+  padding:9px 15px;
+  background:#24242e;
+  color:white;
+  cursor:pointer;
+}
+
+nav button.active{
+  background:#e91e63;
+}
+
+.container{
+  padding:15px;
+  padding-bottom:110px;
+}
+
+.section-title{
+  margin:18px 0 12px;
+  font-size:21px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fill,minmax(160px,1fr));
+  gap:12px;
+}
+
+.card{
+  background:#15151d;
+  border-radius:10px;
+  overflow:hidden;
+  border:1px solid #292933;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+}
+
+.thumb{
+  width:100%;
+  aspect-ratio:16/10;
+  object-fit:cover;
+  background:#222;
+}
+
+.info{
+  padding:9px;
+}
+
+.title{
+  font-size:15px;
+  font-weight:bold;
+  line-height:1.3;
+}
+
+.type{
+  color:#999;
+  font-size:12px;
+  margin-top:5px;
+}
+
+.fav{
+  float:right;
+  font-size:18px;
+  color:#777;
+}
+
+.fav.active{
+  color:#ff3d81;
+}
+
+.player{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:50;
+  background:#000;
+}
+
+.player iframe,
+.player video{
+  width:100%;
+  height:calc(100% - 65px);
+  border:0;
+  object-fit:contain;
+}
+
+.player-top{
+  height:65px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px;
+  background:#111;
+}
+
+.close{
+  background:#e91e63;
+  border:0;
+  color:white;
+  padding:9px 14px;
+  border-radius:7px;
+}
+
+.player-title{
+  font-size:17px;
+  font-weight:bold;
+  overflow:hidden;
+  white-space:nowrap;
+}
+
+.bottom-player{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:30;
+  background:#15151d;
+  border-top:1px solid #333;
+  padding:10px 14px;
+  display:none;
+}
+
+.bottom-player audio{
+  width:100%;
+}
+
+.empty{
+  text-align:center;
+  color:#888;
+  padding:50px 10px;
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 7px;
+  background:#292934;
+  color:#aaa;
+  border-radius:5px;
+  font-size:11px;
+  margin-top:7px;
+}
+
+@media(max-width:500px){
+  .grid{
+    grid-template-columns:
+      repeat(2,1fr);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="logo">🎬 मनोरंजन</div>
+
+  <input
+    id="search"
+    class="search"
+    type="search"
+    placeholder="🔎 गाना, फिल्म, नाटक खोजें..."
+    oninput="searchContent()"
+  >
+
+  <nav>
+    <button class="active"
+            onclick="showCategory('all',this)">
+      🏠 सभी
+    </button>
+
+    <button onclick="showCategory('hindi-song',this)">
+      🎵 Hindi Songs
+    </button>
+
+    <button onclick="showCategory('haryanvi-song',this)">
+      🎵 Haryanvi Songs
+    </button>
+
+    <button onclick="showCategory('hindi-movie',this)">
+      🎬 Hindi Films
+    </button>
+
+    <button onclick="showCategory('haryanvi-movie',this)">
+      🎬 Haryanvi Films
+    </button>
+
+    <button onclick="showCategory('natak',this)">
+      🎭 Haryanvi Natak
+    </button>
+
+    <button onclick="showCategory('comedy',this)">
+      😂 Comedy
+    </button>
+
+    <button onclick="showCategory('short',this)">
+      🎥 Short Videos
+    </button>
+
+    <button onclick="showFavorites(this)">
+      ❤️ Favorites
+    </button>
+  </nav>
+
+</header>
+
+
+<main class="container">
+
+  <h2 class="section-title">🔥 Trending</h2>
+  <div id="trending" class="grid"></div>
+
+  <h2 class="section-title">🎬 सभी मनोरंजन</h2>
+  <div id="content" class="grid"></div>
+
+</main>
+
+
+<!-- FULL PLAYER -->
+
+<div id="player" class="player">
+
+  <div class="player-top">
+
+    <button class="close"
+            onclick="closePlayer()">
+      ✕ बंद
+    </button>
+
+    <div id="playerTitle"
+         class="player-title">
+    </div>
+
+  </div>
+
+  <div id="playerArea"></div>
+
+</div>
+
+
+<!-- AUDIO PLAYER -->
+
+<div id="audioBar"
+     class="bottom-player">
+
+  <div id="audioTitle"
+       style="margin-bottom:7px">
+  </div>
+
+  <audio id="audio"
+         controls>
+  </audio>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   CONTENT
+   अपने authorized content यहाँ जोड़ें
+===================================================== */
+
+const content = [
+
+  {
+    id:1,
+    title:"Hindi Song 1",
+    category:"hindi-song",
+    type:"audio",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"media/hindi-song-1.mp3"
+  },
+
+  {
+    id:2,
+    title:"Haryanvi Song 1",
+    category:"haryanvi-song",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  },
+
+  {
+    id:3,
+    title:"Hindi Film",
+    category:"hindi-movie",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  },
+
+  {
+    id:4,
+    title:"Haryanvi Film",
+    category:"haryanvi-movie",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  },
+
+  {
+    id:5,
+    title:"Haryanvi Natak",
+    category:"natak",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  },
+
+  {
+    id:6,
+    title:"Comedy Video",
+    category:"comedy",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  },
+
+  {
+    id:7,
+    title:"Short Video",
+    category:"short",
+    type:"youtube",
+    image:"https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg",
+    source:"VIDEO_ID"
+  }
+
+];
+
+
+/* =====================================================
+   STATE
+===================================================== */
+
+let currentCategory="all";
+
+let favorites=
+  JSON.parse(
+    localStorage.getItem("favorites") || "[]"
+  );
+
+
+/* =====================================================
+   INIT
+===================================================== */
+
+render(content);
+renderTrending();
+
+
+/* =====================================================
+   RENDER
+===================================================== */
+
+function render(list){
+
+  const box=document.getElementById("content");
+
+  if(!list.length){
+
+    box.innerHTML=
+      `<div class="empty">
+        कोई सामग्री नहीं मिली
+       </div>`;
+
+    return;
+  }
+
+  box.innerHTML=list.map(item=>card(item)).join("");
+
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+function card(item){
+
+  const fav=favorites.includes(item.id);
+
+  return `
+
+  <div class="card"
+       onclick="openContent(${item.id})">
+
+    <img
+      class="thumb"
+      src="${item.image}"
+      onerror="this.style.display='none'"
+    >
+
+    <div class="info">
+
+      <span
+        class="fav ${fav?'active':''}"
+        onclick="toggleFavorite(event,${item.id})">
+        ${fav?'♥':'♡'}
+      </span>
+
+      <div class="title">
+        ${escapeHTML(item.title)}
+      </div>
+
+      <div class="type">
+        ${item.type==="audio"
+          ?"🎵 Audio"
+          :"▶️ Video"}
+      </div>
+
+      <span class="badge">
+        ${categoryName(item.category)}
+      </span>
+
+    </div>
+
+  </div>
+
+  `;
+}
+
+
+/* =====================================================
+   TRENDING
+===================================================== */
+
+function renderTrending(){
+
+  const box=
+    document.getElementById("trending");
+
+  box.innerHTML=
+    content.slice(0,6)
+      .map(item=>card(item))
+      .join("");
+
+}
+
+
+/* =====================================================
+   CATEGORY
+===================================================== */
+
+function showCategory(category,button){
+
+  currentCategory=category;
+
+  document.querySelectorAll("nav button")
+    .forEach(x=>x.classList.remove("active"));
+
+  button.classList.add("active");
+
+  const list=
+    category==="all"
+      ?content
+      :content.filter(
+          x=>x.category===category
+        );
+
+  render(list);
+
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+function searchContent(){
+
+  const q=
+    document
+      .getElementById("search")
+      .value
+      .toLowerCase()
+      .trim();
+
+  if(!q){
+
+    showCurrent();
+
+    return;
+  }
+
+  const list=
+    content.filter(x=>
+      x.title.toLowerCase().includes(q) ||
+      categoryName(x.category)
+        .toLowerCase()
+        .includes(q)
+    );
+
+  render(list);
+
+}
+
+
+/* =====================================================
+   CURRENT CATEGORY
+===================================================== */
+
+function showCurrent(){
+
+  const list=
+    currentCategory==="all"
+      ?content
+      :content.filter(
+          x=>x.category===currentCategory
+        );
+
+  render(list);
+
+}
+
+
+/* =====================================================
+   FAVORITES
+===================================================== */
+
+function toggleFavorite(event,id){
+
+  event.stopPropagation();
+
+  if(favorites.includes(id)){
+
+    favorites=
+      favorites.filter(x=>x!==id);
+
+  }else{
+
+    favorites.push(id);
+
+  }
+
+  localStorage.setItem(
+    "favorites",
+    JSON.stringify(favorites)
+  );
+
+  showCurrent();
+
+  renderTrending();
+
+}
+
+
+function showFavorites(button){
+
+  currentCategory="favorites";
+
+  document.querySelectorAll("nav button")
+    .forEach(x=>x.classList.remove("active"));
+
+  button.classList.add("active");
+
+  const list=
+    content.filter(
+      x=>favorites.includes(x.id)
+    );
+
+  render(list);
+
+}
+
+
+/* =====================================================
+   OPEN CONTENT
+===================================================== */
+
+function openContent(id){
+
+  const item=
+    content.find(x=>x.id===id);
+
+  if(!item)return;
+
+
+  if(item.type==="audio"){
+
+    playAudio(item);
+
+    return;
+
+  }
+
+
+  if(item.type==="youtube"){
+
+    openYouTube(item);
+
+    return;
+
+  }
+
+
+  if(item.type==="video"){
+
+    openVideo(item);
+
+    return;
+
+  }
+
+}
+
+
+/* =====================================================
+   AUDIO
+===================================================== */
+
+function playAudio(item){
+
+  const bar=
+    document.getElementById("audioBar");
+
+  const audio=
+    document.getElementById("audio");
+
+  document.getElementById(
+    "audioTitle"
+  ).innerText=
+    "🎵 "+item.title;
+
+  audio.src=item.source;
+
+  audio.play();
+
+  bar.style.display="block";
+
+}
+
+
+/* =====================================================
+   YOUTUBE
+===================================================== */
+
+function openYouTube(item){
+
+  const player=
+    document.getElementById("player");
+
+  const area=
+    document.getElementById("playerArea");
+
+  document.getElementById(
+    "playerTitle"
+  ).innerText=item.title;
+
+  area.innerHTML=`
+
+    <iframe
+      src="https://www.youtube.com/embed/${item.source}?autoplay=1"
+      allow="
+        autoplay;
+        encrypted-media;
+        picture-in-picture;
+        fullscreen
+      "
+      allowfullscreen>
+    </iframe>
+
+  `;
+
+  player.style.display="block";
+
+}
+
+
+/* =====================================================
+   LOCAL VIDEO
+===================================================== */
+
+function openVideo(item){
+
+  const player=
+    document.getElementById("player");
+
+  const area=
+    document.getElementById("playerArea");
+
+  document.getElementById(
+    "playerTitle"
+  ).innerText=item.title;
+
+  area.innerHTML=`
+
+    <video
+      src="${item.source}"
+      controls
+      autoplay
+      playsinline>
+    </video>
+
+  `;
+
+  player.style.display="block";
+
+}
+
+
+/* =====================================================
+   CLOSE PLAYER
+===================================================== */
+
+function closePlayer(){
+
+  const player=
+    document.getElementById("player");
+
+  const area=
+    document.getElementById("playerArea");
+
+  area.innerHTML="";
+
+  player.style.display="none";
+
+}
+
+
+/* =====================================================
+   CATEGORY NAME
+===================================================== */
+
+function categoryName(c){
+
+  const names={
+
+    "hindi-song":"Hindi Songs",
+    "haryanvi-song":"Haryanvi Songs",
+    "hindi-movie":"Hindi Films",
+    "haryanvi-movie":"Haryanvi Films",
+    "natak":"Haryanvi Natak",
+    "comedy":"Comedy",
+    "short":"Short Videos"
+
+  };
+
+  return names[c] || "Entertainment";
+
+}
+
+
+/* =====================================================
+   HTML SAFE TEXT
+===================================================== */
+
+function escapeHTML(text){
+
+  return String(text)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+}
+
+</script>
+
+</body>
+  </html>
