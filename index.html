@@ -383,6 +383,72 @@
       loadChart(currentInterval);
       loadSavedSettings();
     };
+  <!-- Aapka pehle ka TradingView & Execution script -->
+  <script type="text/javascript">
+    
+    // ... Pehle wale saare functions (executeOrder, triggerAlert, etc.) ...
+
+
+    // ========================================================
+    // YAHAN SE SUPERTREND BAR CLOSE WEBSOCKET CODE ADD KAREIN
+    // ========================================================
+
+    function startSupertrendWebSocket(symbol = 'btcusdt', interval = '15m') {
+      const wsUrl = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`;
+      const ws = new WebSocket(wsUrl);
+
+      let prevSignal = null; // Stored Signal State: 'BUY' or 'SELL'
+
+      ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const kline = data.k;
+
+        // Check if Candle Has Closed (Bar Close Event)
+        const isCandleClosed = kline.x; 
+
+        if (isCandleClosed) {
+          const closePrice = parseFloat(kline.c);
+          const highPrice = parseFloat(kline.h);
+          const lowPrice = parseFloat(kline.l);
+
+          // Signal Evaluation
+          let currentSignal = calculateSupertrendSignal(closePrice, highPrice, lowPrice);
+
+          // Signal Change Detection (Flip Event)
+          if (prevSignal !== null && currentSignal !== prevSignal) {
+            const alertMsg = `🚨 SUPERTREND SIGNAL CHANGED 🚨\nNew Direction: ${currentSignal}\nBar Close Price: $${closePrice}`;
+            
+            // Trigger Audio, Banner & WhatsApp Alert
+            triggerAlert(alertMsg);
+          }
+
+          // Update State
+          prevSignal = currentSignal;
+        }
+      };
+
+      ws.onerror = function(error) {
+        console.error("WebSocket Error: ", error);
+      };
+    }
+
+    function calculateSupertrendSignal(close, high, low) {
+      if (close > (high + low) / 2) {
+        return 'BUY';
+      } else {
+        return 'SELL';
+      }
+    }
+
+    // Page Load hote hi WebSocket Start karein
+    window.addEventListener('load', () => {
+      startSupertrendWebSocket('btcusdt', '15m');
+    });
+
+  </script>
+</body>
+</html>
+
   </script>
 </body>
     </html>
