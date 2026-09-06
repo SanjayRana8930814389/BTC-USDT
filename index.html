@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Dashboard & Signals</title>
+  <!-- TradingView Lightweight Charts Library -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121824; color: #d1d4dc; }
+    
+    /* Top Navigation Bar */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background-color: #1e222d; border-bottom: 1px solid #2a2e39; }
+    .controls { display: flex; gap: 12px; align-items: center; }
+    
+    select, button {
+      background-color: #2a2e39; color: #d1d4dc; border: 1px solid #363c4e;
+      padding: 6px 12px; border-radius: 4px; font-weight: 600; cursor: pointer;
+    }
+    select:focus, button:focus { outline: none; border-color: #2962ff; }
+    button.active { background-color: #2962ff; color: #fff; border-color: #2962ff; }
+    button:hover { background-color: #363c4e; }
+    button.active:hover { background-color: #1e51d8; }
+
+    /* Main Chart Area */
+    #chart-container { width: 100%; height: calc(100vh - 65px); position: relative; }
+    
+    /* Status Badge */
+    .status-badge { font-size: 12px; padding: 4px 8px; border-radius: 12px; font-weight: bold; }
+    .status-online { background-color: rgba(38, 166, 154, 0.2); color: #26a69a; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="controls">
+      <!-- Market Selector -->
+      <select id="marketSelect" onchange="changeMarket(this.value)">
+        <option value="BTCUSDT">BTCUSDT (Crypto)</option>
+        <option value="NIFTY50">NIFTY 50 (Index)</option>
+        <option value="BANKNIFTY">BANK NIFTY (Index)</option>
+      </select>
+
+      <!-- Timeframe Buttons -->
+      <div id="tfGroup">
+        <button onclick="changeTimeframe('1m')" class="tf-btn">1m</button>
+        <button onclick="changeTimeframe('5m')" class="tf-btn active">5m</button>
+        <button onclick="changeTimeframe('15m')" class="tf-btn">15m</button>
+        <button onclick="changeTimeframe('1h')" class="tf-btn">1h</button>
+        <button onclick="changeTimeframe('4h')" class="tf-btn">4h</button>
+        <button onclick="changeTimeframe('1D')" class="tf-btn">1D</button>
+      </div>
+    </div>
+
+    <div>
+      <span class="status-badge status-online" id="socketStatus">WebSocket: Active</span>
+    </div>
+  </div>
+
+  <!-- Chart Container -->
+  <div id="chart-container"></div>
+
+  <script>
+    let chart, candlestickSeries, supertrendSeries;
+    let currentSymbol = 'BTCUSDT';
+    let currentTimeframe = '5m';
+
+    // 1. Chart Initialization
+    function initChart() {
+      const container = document.getElementById('chart-container');
+      chart = LightweightCharts.createChart(container, {
+        layout: { backgroundColor: '#121824', textColor: '#d1d4dc' },
+        grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        priceScale: { borderColor: '#2a2e39' },
+        timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false }
+      });
+
+      candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350',
+        borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+      });
+
+      // Supertrend Overlay Line
+      supertrendSeries = chart.addLineSeries({
+        color: '#26a69a',
+        lineWidth: 2,
+        crosshairMarkerVisible: false
+      });
+
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+      });
+
+      loadChartData();
+    }
+
+    // 2. Mock Data Generator (Replace with API fetch)
+    function generateCandleData() {
+      let data = [];
+      let stData = [];
+      let baseTime = Math.floor(Date.now() / 1000) - (100 * 300);
+      let price = currentSymbol === 'BTCUSDT' ? 65000 : 22000;
+
+      for (let i = 0; i < 100; i++) {
+        let time = baseTime + (i * 300);
+        let open = price + (Math.random() - 0.5) * 50;
+        let high = open + Math.random() * 30;
+        let low = open - Math.random() * 30;
+        let close = (high + low) / 2;
+        price = close;
+
+        data.push({ time, open, high, low, close });
+        stData.push({ time, value: low - 20 });
+      }
+
+      return { candles: data, supertrend: stData };
+    }
+
+    // 3. Load / Refresh Chart Data
+    function loadChartData() {
+      const mock = generateCandleData();
+      candlestickSeries.setData(mock.candles);
+      supertrendSeries.setData(mock.supertrend);
+
+      // Add Overlay Signal Labels (ENTRY, TP1, SL)
+      const lastCandle = mock.candles[mock.candles.length - 1];
+      candlestickSeries.setMarkers([
+        {
+          time: lastCandle.time,
+          position: 'belowBar',
+          color: '#2196F3',
+          shape: 'arrowUp',
+          text: 'BUY @ ' + lastCandle.close.toFixed(2) + ' | SL: ' + (lastCandle.close - 50).toFixed(2)
+        }
+      ]);
+    }
+
+    // 4. Switch Market
+    function changeMarket(symbol) {
+      currentSymbol = symbol;
+      loadChartData();
+    }
+
+    // 5. Switch Timeframe
+    function changeTimeframe(tf) {
+      currentTimeframe = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText === tf);
+      });
+      loadChartData();
+    }
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', initChart);
+  </script>
+</body>
+  </html>
+  
