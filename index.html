@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Pro Terminal - Full Chart & Indicators</title>
+  
+  <!-- Lightweight Charts Official Library -->
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #131722;
+      color: #d1d4dc;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP TRADINGVIEW HEADER BAR */
+    .tv-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #1e222d;
+      border-bottom: 1px solid #2a2e39;
+      padding: 8px 14px;
+      height: 50px;
+    }
+
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tv-select, .tv-btn {
+      background-color: #131722;
+      color: #d1d4dc;
+      border: 1px solid #2a2e39;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .tv-select:hover, .tv-btn:hover { border-color: #2962ff; }
+    .tv-btn.active { background-color: #2962ff; color: #ffffff; border-color: #2962ff; }
+
+    .tf-btn {
+      background-color: #131722;
+      color: #787b86;
+      border: 1px solid #2a2e39;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tf-btn.active { background-color: #2962ff; color: #ffffff; border-color: #2962ff; }
+
+    /* LIVE COUNTDOWN BADGE */
+    .candle-countdown {
+      background-color: #131722;
+      border: 1px solid #2a2e39;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: bold;
+      color: #ff9800;
+    }
+
+    /* MAIN CONTAINER */
+    .main-workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      height: calc(100vh - 50px);
+    }
+
+    .chart-canvas-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    #tradingview-chart {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* WATERMARK */
+    .chart-overlay-info {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 5;
+      pointer-events: none;
+      font-family: monospace;
+    }
+    .overlay-symbol { font-size: 15px; font-weight: bold; color: #ffffff; }
+    .overlay-price { font-size: 13px; font-weight: bold; color: #26a69a; }
+
+    /* INDICATORS SETTINGS FLOATING PANEL */
+    .indicators-panel {
+      width: 260px;
+      background-color: #1e222d;
+      border-left: 1px solid #2a2e39;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #787b86;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #2a2e39;
+      padding-bottom: 6px;
+    }
+
+    .indicator-box {
+      background: #131722;
+      border: 1px solid #2a2e39;
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ind-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .ind-input {
+      width: 60px;
+      background: #1e222d;
+      border: 1px solid #2a2e39;
+      color: #d1d4dc;
+      padding: 4px;
+      border-radius: 3px;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    .apply-btn {
+      background-color: #2962ff;
+      color: white;
+      border: none;
+      padding: 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .apply-btn:hover { background-color: #1e53e5; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="tv-topbar">
+    <div class="toolbar-left">
+      <!-- Symbol Dropdown (Permanent State) -->
+      <select id="symbolDropdown" class="tv-select" onchange="switchSymbol(this.value)">
+        <option value="BTCUSDT" selected>BTC/USDT</option>
+        <option value="ETHUSDT">ETH/USDT</option>
+        <option value="SOLUSDT">SOL/USDT</option>
+        <option value="BNBUSDT">BNB/USDT</option>
+        <option value="DOGEUSDT">DOGE/USDT</option>
+        <option value="XRPUSDT">XRP/USDT</option>
+      </select>
+
+      <!-- Timeframe Buttons (Permanent State) -->
+      <div style="display: flex; gap: 4px;" id="timeframeGroup">
+        <button class="tf-btn" onclick="switchTimeframe('1m', this)">1m</button>
+        <button class="tf-btn active" onclick="switchTimeframe('5m', this)">5m</button>
+        <button class="tf-btn" onclick="switchTimeframe('15m', this)">15m</button>
+        <button class="tf-btn" onclick="switchTimeframe('1h', this)">1h</button>
+        <button class="tf-btn" onclick="switchTimeframe('4h', this)">4h</button>
+        <button class="tf-btn" onclick="switchTimeframe('1d', this)">1D</button>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <div class="candle-countdown">
+        ⏳ Candle Close: <span id="timerDisplay">--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div class="main-workspace">
+    
+    <!-- CHART AREA -->
+    <div class="chart-canvas-container">
+      <div class="chart-overlay-info">
+        <div class="overlay-symbol" id="watermarkSymbol">BTCUSDT</div>
+        <div class="overlay-price" id="watermarkPrice">$0.00</div>
+      </div>
+      <div id="tradingview-chart"></div>
+    </div>
+
+    <!-- INDICATORS SETTINGS SIDEBAR -->
+    <div class="indicators-panel">
+      <div class="panel-title">Indicators & Settings</div>
+      
+      <!-- Supertrend Settings -->
+      <div class="indicator-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: bold; font-size: 13px; color: #2962ff;">Supertrend</span>
+          <input type="checkbox" id="stEnable" checked onchange="recalculateAndPlot()">
+        </div>
+        <div class="ind-row">
+          <span>ATR Period:</span>
+          <input type="number" id="stPeriod" class="ind-input" value="10">
+        </div>
+        <div class="ind-row">
+          <span>Multiplier:</span>
+          <input type="number" id="stMultiplier" class="ind-input" value="3" step="0.5">
+        </div>
+      </div>
+
+      <!-- EMA Settings -->
+      <div class="indicator-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: bold; font-size: 13px; color: #ff9800;">EMA Trend</span>
+          <input type="checkbox" id="emaEnable" checked onchange="recalculateAndPlot()">
+        </div>
+        <div class="ind-row">
+          <span>EMA Length:</span>
+          <input type="number" id="emaLength" class="ind-input" value="50">
+        </div>
+      </div>
+
+      <button class="apply-btn" onclick="recalculateAndPlot()">Apply Settings</button>
+    </div>
+
+  </div>
+
+  <!-- SCRIPT ENGINE -->
+  <script>
+    let chartInstance, candlestickSeries, stSeries, emaSeries;
+    let webSocket = null;
+    let selectedSymbol = localStorage.getItem('tv_pro_symbol') || 'BTCUSDT';
+    let selectedTimeframe = localStorage.getItem('tv_pro_tf') || '5m';
+    let candlesData = [];
+    let currentCandleCloseTimestamp = 0;
+    let countdownInterval = null;
+
+    document.getElementById('symbolDropdown').value = selectedSymbol;
+    document.querySelectorAll('#timeframeGroup button').forEach(btn => {
+      if (btn.innerText.toLowerCase() === selectedTimeframe.toLowerCase()) {
+        document.querySelectorAll('#timeframeGroup button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+
+    function initTradingViewChart() {
+      const domContainer = document.getElementById('tradingview-chart');
+      
+      chartInstance = LightweightCharts.createChart(domContainer, {
+        width: domContainer.clientWidth,
+        height: domContainer.clientHeight,
+        layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
+        grid: { vertLines: { color: '#1f242d' }, horzLines: { color: '#1f242d' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#2a2e39' },
+        timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: true },
+      });
+
+      candlestickSeries = chartInstance.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350',
+        borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+      });
+
+      stSeries = chartInstance.addLineSeries({ color: '#2962ff', lineWidth: 2, crosshairMarkerVisible: false });
+      emaSeries = chartInstance.addLineSeries({ color: '#ff9800', lineWidth: 1.5, crosshairMarkerVisible: false });
+
+      window.addEventListener('resize', () => {
+        chartInstance.applyOptions({ width: domContainer.clientWidth, height: domContainer.clientHeight });
+      });
+
+      fetchHistoricalCandles();
+    }
+
+    async function fetchHistoricalCandles() {
+      try {
+        const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${selectedSymbol}&interval=${selectedTimeframe}&limit=400`);
+        const json = await response.json();
+
+        candlesData = json.map(item => ({
+          time: Math.floor(item[0] / 1000),
+          open: parseFloat(item[1]),
+          high: parseFloat(item[2]),
+          low: parseFloat(item[3]),
+          close: parseFloat(item[4])
+        }));
+
+        candlestickSeries.setData(candlesData);
+
+        if (candlesData.length > 0) {
+          const lastCandle = candlesData[candlesData.length - 1];
+          const tfSeconds = getTimeframeInSeconds(selectedTimeframe);
+          currentCandleCloseTimestamp = lastCandle.time + tfSeconds;
+          startLiveCountdown();
+          updateWatermark(lastCandle.close);
+        }
+
+        recalculateAndPlot();
+        chartInstance.timeScale().fitContent();
+        connectWebSocketStream();
+
+      } catch (err) {
+        console.error("Error loading historical data:", err);
+      }
+    }
+
+    function recalculateAndPlot() {
+      if (candlesData.length === 0) return;
+
+      // 1. Supertrend Plotting
+      const stEnabled = document.getElementById('stEnable').checked;
+      if (stEnabled) {
+        const period = parseInt(document.getElementById('stPeriod').value) || 10;
+        const mult = parseFloat(document.getElementById('stMultiplier').value) || 3;
+        const stData = computeSupertrend(candlesData, period, mult);
+        stSeries.setData(stData.map(d => ({ time: d.time, value: d.value })));
+      } else {
+        stSeries.setData([]);
+      }
+
+      // 2. EMA Plotting
+      const emaEnabled = document.getElementById('emaEnable').checked;
+      if (emaEnabled) {
+        const length = parseInt(document.getElementById('emaLength').value) || 50;
+        const emaData = computeEMA(candlesData, length);
+        emaSeries.setData(emaData);
+      } else {
+        emaSeries.setData([]);
+      }
+    }
+
+    function computeSupertrend(candles, period, mult) {
+      let result = [];
+      let atr = [];
+      let upper = [], lower = [];
+      let inUp = true;
+
+      for (let i = 0; i < candles.length; i++) {
+        let tr = i === 0 ? candles[i].high - candles[i].low : Math.max(
+          candles[i].high - candles[i].low,
+          Math.abs(candles[i].high - candles[i - 1].close),
+          Math.abs(candles[i].low - candles[i - 1].close)
+        );
+        if (i < period) atr.push(tr);
+        else atr.push((atr[i - 1] * (period - 1) + tr) / period);
+
+        let hl2 = (candles[i].high + candles[i].low) / 2;
+        let bUp = hl2 + mult * atr[i];
+        let bLow = hl2 - mult * atr[i];
+
+        if (i === 0) {
+          upper.push(bUp); lower.push(bLow);
+          result.push({ time: candles[i].time, value: bLow, isUp: true });
+          continue;
+        }
+
+        let fUp = bUp < upper[i - 1] || candles[i - 1].close > upper[i - 1] ? bUp : upper[i - 1];
+        let fLow = bLow > lower[i - 1] || candles[i - 1].close < lower[i - 1] ? bLow : lower[i - 1];
+
+        upper.push(fUp); lower.push(fLow);
+
+        if (inUp) {
+          if (candles[i].close < fLow) { inUp = false; result.push({ time: candles[i].time, value: fUp, isUp: false }); }
+          else { result.push({ time: candles[i].time, value: fLow, isUp: true }); }
+        } else {
+          if (candles[i].close > fUp) { inUp = true; result.push({ time: candles[i].time, value: fLow, isUp: true }); }
+          else { result.push({ time: candles[i].time, value: fUp, isUp: false }); }
+        }
+      }
+      return result;
+    }
+
+    function computeEMA(candles, period) {
+      let result = [];
+      let k = 2 / (period + 1);
+      let emaPrev = 0;
+
+      for (let i = 0; i < candles.length; i++) {
+        if (i < period) {
+          emaPrev += candles[i].close;
+          if (i === period - 1) {
+            emaPrev = emaPrev / period;
+            result.push({ time: candles[i].time, value: emaPrev });
+          }
+        } else {
+          let emaCurr = (candles[i].close * k) + (emaPrev * (1 - k));
+          result.push({ time: candles[i].time, value: emaCurr });
+          emaPrev = emaCurr;
+        }
+      }
+      return result;
+    }
+
+    function getTimeframeInSeconds(tf) {
+      if (tf.endsWith('m')) return parseInt(tf) * 60;
+      if (tf.endsWith('h')) return parseInt(tf) * 3600;
+      if (tf.endsWith('d') || tf.endsWith('D')) return 86400;
+      return 300;
+    }
+
+    function connectWebSocketStream() {
+      if (webSocket) webSocket.close();
+
+      const streamName = `${selectedSymbol.toLowerCase()}@kline_${selectedTimeframe}`;
+      webSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${streamName}`);
+
+      webSocket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        const kline = msg.k;
+
+        const liveCandle = {
+          time: Math.floor(kline.t / 1000),
+          open: parseFloat(kline.o),
+          high: parseFloat(kline.h),
+          low: parseFloat(kline.l),
+          close: parseFloat(kline.c)
+        };
+
+        const tfSeconds = getTimeframeInSeconds(selectedTimeframe);
+        currentCandleCloseTimestamp = liveCandle.time + tfSeconds;
+
+        let lastIndex = candlesData.length - 1;
+        if (candlesData[lastIndex].time === liveCandle.time) {
+          candlesData[lastIndex] = liveCandle;
+        } else {
+          candlesData.push(liveCandle);
+        }
+
+        candlestickSeries.update(liveCandle);
+        recalculateAndPlot();
+        updateWatermark(liveCandle.close);
+      };
+    }
+
+    function startLiveCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(() => {
+        const nowSec = Math.floor(Date.now() / 1000);
+        let timeLeft = currentCandleCloseTimestamp - nowSec;
+
+        if (timeLeft <= 0) {
+          document.getElementById('timerDisplay').innerText = "00:00";
+          return;
+        }
+
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        document.getElementById('timerDisplay').innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function updateWatermark(price) {
+      document.getElementById('watermarkSymbol').innerText = selectedSymbol;
+      document.getElementById('watermarkPrice').innerText = '$' + price.toFixed(2);
+    }
+
+    function switchSymbol(symbol) {
+      selectedSymbol = symbol;
+      localStorage.setItem('tv_pro_symbol', symbol);
+      fetchHistoricalCandles();
+    }
+
+    function switchTimeframe(tf, buttonElement) {
+      selectedTimeframe = tf;
+      localStorage.setItem('tv_pro_tf', tf);
+
+      document.querySelectorAll('#timeframeGroup button').forEach(b => b.classList.remove('active'));
+      buttonElement.classList.add('active');
+
+      fetchHistoricalCandles();
+    }
+
+    window.onload = initTradingViewChart;
+  </script>
+</body>
+  </html>
+            
