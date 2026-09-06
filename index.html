@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Battle Terminal - Crypto & NSE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: #0b0e14; color: #d1d4dc; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: #161a25; padding: 10px 15px; display: flex;
+      justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2e39;
+    }
+    .brand { color: #00f2fe; font-weight: bold; font-size: 16px; }
+    .balance-box { background: #1e222d; padding: 4px 10px; border-radius: 4px; font-size: 13px; border: 1px solid #363c4e; }
+    .balance-box span { color: #26a69a; font-weight: bold; }
+
+    /* Top Navigation / Symbol Bar */
+    .symbol-bar {
+      background: #161a25; padding: 8px 15px; display: flex; gap: 10px; align-items: center;
+      border-bottom: 1px solid #2a2e39;
+    }
+    .symbol-btn {
+      background: #1e222d; color: #d1d4dc; border: 1px solid #363c4e;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
+    }
+    .symbol-btn.active, .symbol-btn:hover { background: #00f2fe; color: #0b0e14; border-color: #00f2fe; }
+
+    /* Chart Section & On-Chart Overlay */
+    .chart-container { width: 100%; height: 500px; background: #131722; position: relative; }
+    
+    .chart-overlay-levels {
+      position: absolute; top: 15px; left: 15px; z-index: 10;
+      background: rgba(22, 26, 37, 0.85); border: 1px solid #2a2e39;
+      padding: 10px 14px; border-radius: 6px; backdrop-filter: blur(4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-size: 11px; min-width: 210px;
+    }
+    .chart-overlay-levels h4 { color: #848e9c; font-size: 10px; margin-bottom: 6px; text-transform: uppercase; }
+    .overlay-tag { padding: 3px 6px; border-radius: 3px; font-weight: bold; margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .tag-entry { background: rgba(41, 98, 255, 0.2); color: #2962ff; border-left: 3px solid #2962ff; }
+    .tag-tp { background: rgba(8, 153, 129, 0.2); color: #089981; border-left: 3px solid #089981; }
+    .tag-sl { background: rgba(242, 54, 69, 0.2); color: #f23645; border-left: 3px solid #f23645; }
+
+    /* Timeframe Strip */
+    .tf-bar {
+      background: #131722; padding: 8px 15px; display: flex; gap: 8px; align-items: center;
+      border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39;
+    }
+    .tf-btn {
+      background: #1e222d; color: #848e9c; border: 1px solid #2a2e39;
+      padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+    }
+    .tf-btn.active, .tf-btn:hover { background: #2962ff; color: #fff; border-color: #2962ff; }
+
+    /* Controls & Settings Section */
+    .controls-wrapper {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 12px; padding: 15px; background: #0b0e14;
+    }
+
+    .card { background: #1e222d; padding: 12px; border-radius: 6px; border: 1px solid #2a2e39; }
+    .card h3 { font-size: 12px; color: #848e9c; margin-bottom: 8px; text-transform: uppercase; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .input-box { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+    label { font-size: 11px; color: #b2b9c0; }
+    input, select {
+      background: #0b0e14; border: 1px solid #363c4e; color: #fff;
+      padding: 6px; border-radius: 4px; font-size: 11px; width: 100%;
+    }
+
+    .checkbox-group { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+    .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #d1d4dc; }
+    .checkbox-item input { width: auto; cursor: pointer; }
+
+    .btn-save { width: 100%; background: #2962ff; color: white; border: none; padding: 7px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; color: white; }
+    .btn-buy { background: #089981; } .btn-sell { background: #f23645; }
+
+    /* Bottom Panel */
+    .bottom-panel { background: #131722; border-top: 1px solid #2a2e39; padding: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+    th { background: #1e222d; color: #848e9c; padding: 6px; }
+    td { padding: 6px; border-bottom: 1px solid #2a2e39; }
+
+    .alert-banner {
+      display: none; background: #2962ff; color: white; padding: 8px 12px;
+      font-size: 12px; text-align: center; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">TRADE BATTLE TERMINAL</div>
+    <div class="balance-box">Demo Balance: $<span id="display-balance">10000.00</span> USDT</div>
+  </header>
+
+  <div class="symbol-bar">
+    <span style="font-size:11px; color:#848e9c;">Select Market:</span>
+    <button class="symbol-btn active" data-symbol="BINANCE:BTCUSDT" onclick="changeSymbol('BINANCE:BTCUSDT')">BTCUSDT (Crypto)</button>
+    <button class="symbol-btn" data-symbol="NSE:NIFTY" onclick="changeSymbol('NSE:NIFTY')">NIFTY 50 (NSE)</button>
+    <button class="symbol-btn" data-symbol="NSE:BANKNIFTY" onclick="changeSymbol('NSE:BANKNIFTY')">BANK NIFTY (NSE)</button>
+  </div>
+
+  <div id="alert-banner" class="alert-banner">🔔 Alert Notification Active</div>
+
+  <div class="chart-container" id="chart-box">
+    <div class="chart-overlay-levels" id="chart-overlay">
+      <h4>Active Levels (<span id="active-symbol-label">BTCUSDT</span> - <span id="active-tf-label">15m</span>)</h4>
+      <div class="overlay-tag tag-entry"><span>ENTRY</span><span id="chart-entry">--</span></div>
+      <div class="overlay-tag tag-tp"><span>TP1</span><span id="chart-tp1">--</span></div>
+      <div class="overlay-tag tag-tp"><span>TP2</span><span id="chart-tp2">--</span></div>
+      <div class="overlay-tag tag-tp"><span>TP3</span><span id="chart-tp3">--</span></div>
+      <div class="overlay-tag tag-sl"><span>STOP LOSS</span><span id="chart-sl">--</span></div>
+    </div>
+  </div>
+
+  <div class="tf-bar">
+    <span style="font-size:11px; color:#848e9c;">Timeframe:</span>
+    <button class="tf-btn" data-tf="1" onclick="changeTimeframe('1')">1m</button>
+    <button class="tf-btn" data-tf="5" onclick="changeTimeframe('5')">5m</button>
+    <button class="tf-btn" data-tf="15" onclick="changeTimeframe('15')">15m</button>
+    <button class="tf-btn" data-tf="60" onclick="changeTimeframe('60')">1h</button>
+    <button class="tf-btn" data-tf="240" onclick="changeTimeframe('240')">4h</button>
+    <button class="tf-btn" data-tf="D" onclick="changeTimeframe('D')">1D</button>
+    <span id="active-tf-status" style="font-size:11px; color:#089981; margin-left: auto;">Active WS: BTCUSDT (15m)</span>
+  </div>
+
+  <div class="controls-wrapper">
+    
+    <div class="card">
+      <h3 style="color:#00f2fe;">Timeframe Target & Alert Rules</h3>
+      <div class="input-box">
+        <label>Select Timeframe Config</label>
+        <select id="setting-tf-select" onchange="loadTFSpecificSettings()">
+          <option value="1">1m Timeframe</option>
+          <option value="5">5m Timeframe</option>
+          <option value="15" selected>15m Timeframe</option>
+          <option value="60">1h Timeframe</option>
+          <option value="240">4h Timeframe</option>
+          <option value="D">1D Timeframe</option>
+        </select>
+      </div>
+
+      <div class="grid-3">
+        <div class="input-box"><label>TP1 (%)</label><input type="number" step="0.1" id="tf-tp1" value="1.0"></div>
+        <div class="input-box"><label>TP2 (%)</label><input type="number" step="0.1" id="tf-tp2" value="2.0"></div>
+        <div class="input-box"><label>TP3 (%)</label><input type="number" step="0.1" id="tf-tp3" value="3.0"></div>
+      </div>
+      <div class="grid-2">
+        <div class="input-box"><label>SL (%)</label><input type="number" step="0.1" id="tf-sl" value="1.5"></div>
+        <div class="input-box"><label>TSL (%)</label><input type="number" step="0.1" id="tf-tsl" value="0.5"></div>
+      </div>
+
+      <div class="input-box" style="margin-top: 4px;">
+        <label>Active Alert Conditions:</label>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" id="alert-chk-buy" checked> Buy / Long Signal Alert</label>
+          <label class="checkbox-item"><input type="checkbox" id="alert-chk-sell" checked> Sell / Short Signal Alert</label>
+          <label class="checkbox-item"><input type="checkbox" id="alert-chk-tp" checked> Target (TP) Hit Alert</label>
+          <label class="checkbox-item"><input type="checkbox" id="alert-chk-sl" checked> Stop Loss (SL) Hit Alert</label>
+        </div>
+      </div>
+
+      <button class="btn-save" style="margin-top:8px;" onclick="saveTFSpecificSettings()">Save Selected TF Config</button>
+    </div>
+
+    <div class="card">
+      <h3>WhatsApp Alerts Setup</h3>
+      <div class="input-box">
+        <label>WhatsApp Number (Country Code)</label>
+        <input type="text" id="wa-phone" placeholder="91XXXXXXXXXX">
+      </div>
+      <div class="input-box">
+        <label>CallMeBot API Key</label>
+        <input type="text" id="wa-apikey" placeholder="Enter API Key">
+      </div>
+      <button class="btn-save" style="background:#25D366;" onclick="saveWhatsAppSettings()">Save WhatsApp Config</button>
+    </div>
+
+    <div class="card">
+      <h3>SuperTrend Indicator Setup</h3>
+      <div class="grid-2">
+        <div class="input-box"><label>ATR Length</label><input type="number" id="st-length" value="10"></div>
+        <div class="input-box"><label>Multiplier</label><input type="number" step="0.1" id="st-mult" value="3.0"></div>
+      </div>
+      <h3 style="margin-top:8px;">Demo Balance</h3>
+      <div class="grid-2">
+        <input type="number" id="custom-balance-input" placeholder="Set Balance">
+        <button class="btn-save" onclick="updateBalance()">Set Balance</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Execution Panel</h3>
+      <div class="input-box">
+        <label>Order Type</label>
+        <select id="order-type" onchange="toggleLimitInput()">
+          <option value="MARKET">Market Order</option>
+          <option value="LIMIT">Limit Order</option>
+        </select>
+      </div>
+      <div class="input-box" id="limit-price-group" style="display:none;">
+        <label>Limit Price</label>
+        <input type="number" id="limit-price" placeholder="Price">
+      </div>
+      <div class="input-box"><label>Quantity / Lots</label><input type="number" id="order-qty" value="1"></div>
+      <div class="grid-2" style="margin-top:6px;">
+        <button class="btn-action btn-buy" onclick="executeOrder('BUY')">BUY / LONG</button>
+        <button class="btn-action btn-sell" onclick="executeOrder('SELL')">SELL / SHORT</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-panel">
+    <h3 style="font-size:12px; color:#848e9c; margin-bottom:8px;">EXECUTED ORDERS & ALERT LOGS</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th><th>Symbol</th><th>TF</th><th>Type</th><th>Side</th><th>Qty</th><th>Entry</th><th>TP1 / TP2 / TP3</th><th>SL</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="orders-table-body"></tbody>
+    </table>
+  </div>
+
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+    let currentSymbol = localStorage.getItem('selected_symbol') || "BINANCE:BTCUSDT";
+    let currentInterval = localStorage.getItem('selected_tf') || "15";
+    let wsInstance = null;
+    let prevSignal = null;
+    const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+    const defaultTFConfigs = {
+      "1":   { tp1: 0.3, tp2: 0.6, tp3: 1.0, sl: 0.4, tsl: 0.2, buy: true, sell: true, tp: true, sl_alert: true },
+      "5":   { tp1: 0.5, tp2: 1.0, tp3: 1.5, sl: 0.7, tsl: 0.3, buy: true, sell: true, tp: true, sl_alert: true },
+      "15":  { tp1: 1.0, tp2: 2.0, tp3: 3.0, sl: 1.5, tsl: 0.5, buy: true, sell: true, tp: true, sl_alert: true },
+      "60":  { tp1: 2.0, tp2: 4.0, tp3: 6.0, sl: 2.5, tsl: 1.0, buy: true, sell: true, tp: true, sl_alert: true },
+      "240": { tp1: 3.5, tp2: 7.0, tp3: 10.0, sl: 4.0, tsl: 1.5, buy: true, sell: true, tp: true, sl_alert: true },
+      "D":   { tp1: 5.0, tp2: 10.0, tp3: 15.0, sl: 6.0, tsl: 2.0, buy: true, sell: true, tp: true, sl_alert: true }
+    };
+
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+
+    function loadChart(symbol, interval) {
+      const container = document.getElementById('chart-box');
+      const overlayHTML = document.getElementById('chart-overlay').outerHTML;
+      container.innerHTML = '<div id="tv_chart" style="height:100%;width:100%;"></div>' + overlayHTML;
+      
+      new TradingView.widget({
+        "autosize": true,
+        "symbol": symbol,
+        "interval": interval,
+        "timezone": "Asia/Kolkata",
+        "theme": "dark",
+        "style": "1",
+        "locale": "in",
+        "enable_publishing": false,
+        "hide_side_toolbar": false,
+        "allow_symbol_change": true,
+        "studies": ["STD;Supertrend"],
+        "container_id": "tv_chart"
+      });
+    }
+
+    function changeSymbol(symbol) {
+      currentSymbol = symbol;
+      localStorage.setItem('selected_symbol', symbol);
+      updateSymbolUI();
+      loadChart(currentSymbol, currentInterval);
+      initSupertrendWebSocket(currentSymbol, currentInterval);
+    }
+
+    function changeTimeframe(tf) {
+      currentInterval = tf;
+      localStorage.setItem('selected_tf', tf);
+      document.getElementById('setting-tf-select').value = tf;
+      updateTFUI();
+      loadChart(currentSymbol, tf);
+      loadTFSpecificSettings();
+      initSupertrendWebSocket(currentSymbol, tf);
+    }
+
+    function updateSymbolUI() {
+      document.querySelectorAll('.symbol-btn').forEach(btn => {
+        if(btn.getAttribute('data-symbol') === currentSymbol) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const cleanName = currentSymbol.replace('BINANCE:', '').replace('NSE:', '');
+      document.getElementById('active-symbol-label').innerText = cleanName;
+    }
+
+    function updateTFUI() {
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        if(btn.getAttribute('data-tf') === currentInterval) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const cleanName = currentSymbol.replace('BINANCE:', '').replace('NSE:', '');
+      document.getElementById('active-tf-status').innerText = `Active Alert: ${cleanName} (${currentInterval}${currentInterval==='D'?'':'m'})`;
+      document.getElementById('active-tf-label').innerText = `${currentInterval}${currentInterval==='D'?'':'m'}`;
+    }
+
+    function toggleLimitInput() {
+      const type = document.getElementById('order-type').value;
+      document.getElementById('limit-price-group').style.display = (type === 'LIMIT') ? 'block' : 'none';
+    }
+
+    function triggerAlert(msg) {
+      const banner = document.getElementById('alert-banner');
+      banner.innerText = '🔔 ALERT: ' + msg;
+      banner.style.display = 'block';
+      setTimeout(() => { banner.style.display = 'none'; }, 5000);
+
+      alertAudio.play().catch(e => console.log("Audio play suppressed"));
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Trade Battle Alert 🚀", { body: msg });
+      }
+
+      sendWhatsAppAlert(msg);
+    }
+
+    function sendWhatsAppAlert(message) {
+      const phone = localStorage.getItem('wa_phone');
+      const apiKey = localStorage.getItem('wa_apikey');
+
+      if (phone && apiKey) {
+        const encodedText = encodeURIComponent("🚨 TRADE BATTLE ALERT 🚨\n\n" + message);
+        const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodedText}&apikey=${apiKey}`;
+        fetch(url, { mode: 'no-cors' }).catch(err => console.error("WhatsApp error:", err));
+      }
+    }
+
+    function saveTFSpecificSettings() {
+      const tf = document.getElementById('setting-tf-select').value;
+      const allConfigs = JSON.parse(localStorage.getItem('tf_configs') || JSON.stringify(defaultTFConfigs));
+
+      allConfigs[tf] = {
+        tp1: parseFloat(document.getElementById('tf-tp1').value),
+        tp2: parseFloat(document.getElementById('tf-tp2').value),
+        tp3: parseFloat(document.getElementById('tf-tp3').value),
+        sl: parseFloat(document.getElementById('tf-sl').value),
+        tsl: parseFloat(document.getElementById('tf-tsl').value),
+        buy: document.getElementById('alert-chk-buy').checked,
+        sell: document.getElementById('alert-chk-sell').checked,
+        tp: document.getElementById('alert-chk-tp').checked,
+        sl_alert: document.getElementById('alert-chk-sl').checked
+      };
+
+      localStorage.setItem('tf_configs', JSON.stringify(allConfigs));
+      triggerAlert(`Settings saved for ${tf}${tf==='D'?'':'m'} Timeframe!`);
+    }
+
+    function loadTFSpecificSettings() {
+      const tf = document.getElementById('setting-tf-select').value;
+      const allConfigs = JSON.parse(localStorage.getItem('tf_configs') || JSON.stringify(defaultTFConfigs));
+      const conf = allConfigs[tf] || defaultTFConfigs[tf];
+
+      document.getElementById('tf-tp1').value = conf.tp1;
+      document.getElementById('tf-tp2').value = conf.tp2;
+      document.getElementById('tf-tp3').value = conf.tp3;
+      document.getElementById('tf-sl').value = conf.sl;
+      document.getElementById('tf-tsl').value = conf.tsl;
+
+      document.getElementById('alert-chk-buy').checked = conf.buy !== false;
+      document.getElementById('alert-chk-sell').checked = conf.sell !== false;
+      document.getElementById('alert-chk-tp').checked = conf.tp !== false;
+      document.getElementById('alert-chk-sl').checked = conf.sl_alert !== false;
+    }
+
+    function getActiveTFConfig(tf) {
+      const allConfigs = JSON.parse(localStorage.getItem('tf_configs') || JSON.stringify(defaultTFConfigs));
+      return allConfigs[tf] || defaultTFConfigs[tf];
+    }
+
+    function saveWhatsAppSettings() {
+      const phone = document.getElementById('wa-phone').value.trim();
+      const apiKey = document.getElementById('wa-apikey').value.trim();
+
+      if (phone && apiKey) {
+        localStorage.setItem('wa_phone', phone);
+        localStorage.setItem('wa_apikey', apiKey);
+        triggerAlert('WhatsApp configuration saved!');
+      } else {
+        alert('Please enter both Phone Number and API Key.');
+      }
+    }
+
+    function loadSavedGeneral() {
+      const savedPhone = localStorage.getItem('wa_phone');
+      const savedApiKey = localStorage.getItem('wa_apikey');
+      if (savedPhone) document.getElementById('wa-phone').value = savedPhone;
+      if (savedApiKey) document.getElementById('wa-apikey').value = savedApiKey;
+
+      const savedBal = localStorage.getItem('demo_balance');
+      if (savedBal) document.getElementById('display-balance').innerText = parseFloat(savedBal).toFixed(2);
+
+      const savedTrade = localStorage.getItem('active_chart_levels');
+      if (savedTrade) {
+        const levels = JSON.parse(savedTrade);
+        updateChartOverlayUI(levels.entry, levels.tp1, levels.tp2, levels.tp3, levels.sl);
+      }
+    }
+
+    function updateBalance() {
+      const val = document.getElementById('custom-balance-input').value;
+      if (val && val > 0) {
+        localStorage.setItem('demo_balance', val);
+        document.getElementById('display-balance').innerText = parseFloat(val).toFixed(2);
+        document.getElementById('custom-balance-input').value = '';
+        triggerAlert('Demo balance set to $' + val + ' USDT');
+    
