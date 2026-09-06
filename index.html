@@ -1,0 +1,2239 @@
+/*
+===========================================================
+ RANA REAL TRADING SYSTEM
+ Single File: server.js
+
+ FLOW
+
+ LIVE MARKET
+     ↓
+ CANDLES
+     ↓
+ SUPERTREND
+     ↓
+ BUY / SELL FLIP
+     ↓
+ ENTRY
+     ↓
+ TP1 / TP2 / TP3
+     ↓
+ SL / TSL
+     ↓
+ REAL WHATSAPP API
+
+ TradingView signal is NOT used.
+
+ IMPORTANT:
+ - WhatsApp credentials are intentionally blank.
+ - Fill them later.
+ - Never expose the Access Token publicly.
+===========================================================
+*/
+
+const http = require("http");
+const https = require("https");
+
+
+// =======================================================
+// SETTINGS
+// =======================================================
+
+const CONFIG = {
+
+    // MARKET
+    symbol: "BTCUSDT",
+    interval: "5m",
+    candleLimit: 200,
+
+    // SUPERTREND
+    atrPeriod: 10,
+    multiplier: 3.0,
+
+    // TARGETS
+    tp1Points: 300,
+    tp2Points: 600,
+    tp3Points: 900,
+
+    // STOP LOSS
+    slPoints: 200,
+
+    // TRAILING
+    trailStep: 100,
+
+    // ===================================================
+    // WHATSAPP CLOUD API
+    // ===================================================
+
+    whatsapp: {
+
+        enabled: true,
+
+        apiVersion: "v23.0",
+
+        phoneNumberId: "",
+
+        accessToken: "",
+
+        recipientNumber: ""
+
+    },
+
+    // ===================================================
+    // PIONEX
+    // ===================================================
+
+    pionex: {
+
+        enabled: false,
+
+        apiKey: "",
+
+        apiSecret: "",
+
+        symbol: "BTCUSDT",
+
+        quantity: 0.001
+
+    }
+
+};
+
+
+// =======================================================
+// RUNTIME STATE
+// =======================================================
+
+const STATE = {
+
+    price: null,
+
+    trend: "WAIT",
+
+    previousTrend: null,
+
+    signal: "WAIT",
+
+    signalTime: null,
+
+    signalCandle: null,
+
+    entry: null,
+
+    tp1: null,
+
+    tp2: null,
+
+    tp3: null,
+
+    sl: null,
+
+    tsl: null,
+
+    position: "NONE",
+
+    whatsapp: "NOT SENT",
+
+    whatsappError: "",
+
+    lastMessage: "",
+
+    lastUpdate: null
+
+};
+
+
+// =======================================================
+// HTML DASHBOARD
+// =======================================================
+
+const HTML = `
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>Rana Trading System</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+
+margin:0;
+
+background:#0f1117;
+
+color:white;
+
+font-family:Arial;
+
+}
+
+.header{
+
+padding:16px;
+
+background:#191d27;
+
+font-size:22px;
+
+font-weight:bold;
+
+}
+
+.container{
+
+padding:12px;
+
+max-width:1200px;
+
+margin:auto;
+
+}
+
+.signal{
+
+padding:18px;
+
+border-radius:10px;
+
+text-align:center;
+
+font-size:25px;
+
+font-weight:bold;
+
+margin-bottom:12px;
+
+background:#30343d;
+
+}
+
+.buy{
+
+background:#075c45;
+
+}
+
+.sell{
+
+background:#70262e;
+
+}
+
+.grid{
+
+display:grid;
+
+grid-template-columns:
+repeat(auto-fit,minmax(170px,1fr));
+
+gap:10px;
+
+}
+
+.card{
+
+background:#191d25;
+
+border:1px solid #303643;
+
+border-radius:8px;
+
+padding:14px;
+
+}
+
+.name{
+
+font-size:12px;
+
+color:#9ba2af;
+
+}
+
+.value{
+
+font-size:19px;
+
+font-weight:bold;
+
+margin-top:8px;
+
+}
+
+details{
+
+margin-top:12px;
+
+background:#191d25;
+
+border:1px solid #303643;
+
+border-radius:8px;
+
+}
+
+summary{
+
+padding:14px;
+
+font-weight:bold;
+
+cursor:pointer;
+
+}
+
+.content{
+
+padding:14px;
+
+}
+
+input{
+
+width:100%;
+
+padding:10px;
+
+margin:5px 0 10px;
+
+background:#0d1015;
+
+border:1px solid #3c4350;
+
+border-radius:5px;
+
+color:white;
+
+}
+
+button{
+
+width:100%;
+
+padding:12px;
+
+background:#2962ff;
+
+color:white;
+
+border:0;
+
+border-radius:6px;
+
+font-weight:bold;
+
+}
+
+pre{
+
+white-space:pre-wrap;
+
+word-break:break-word;
+
+background:#0d1015;
+
+padding:12px;
+
+border-radius:6px;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+RANA REAL TRADING SYSTEM
+
+</div>
+
+
+<div class="container">
+
+
+<div id="signal"
+class="signal">
+
+WAIT
+
+</div>
+
+
+<div class="grid">
+
+
+<div class="card">
+
+<div class="name">
+SYMBOL
+</div>
+
+<div id="symbol"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+TIMEFRAME
+</div>
+
+<div id="interval"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+LIVE PRICE
+</div>
+
+<div id="price"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+SUPERTREND
+</div>
+
+<div id="trend"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+ENTRY
+</div>
+
+<div id="entry"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+TP1
+</div>
+
+<div id="tp1"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+TP2
+</div>
+
+<div id="tp2"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+TP3
+</div>
+
+<div id="tp3"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+SL
+</div>
+
+<div id="sl"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+TSL
+</div>
+
+<div id="tsl"
+class="value">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="name">
+WHATSAPP
+</div>
+
+<div id="whatsapp"
+class="value">
+--
+</div>
+
+</div>
+
+
+</div>
+
+
+<!-- SETTINGS -->
+
+<details open>
+
+<summary>
+07 • SETTINGS
+</summary>
+
+<div class="content">
+
+
+<label>
+ATR Period
+</label>
+
+<input
+id="atr"
+type="number"
+value="10">
+
+
+<label>
+SuperTrend Multiplier
+</label>
+
+<input
+id="multiplier"
+type="number"
+step="0.1"
+value="3">
+
+
+<label>
+TP1 Points
+</label>
+
+<input
+id="tp1Input"
+type="number"
+value="300">
+
+
+<label>
+TP2 Points
+</label>
+
+<input
+id="tp2Input"
+type="number"
+value="600">
+
+
+<label>
+TP3 Points
+</label>
+
+<input
+id="tp3Input"
+type="number"
+value="900">
+
+
+<label>
+SL Points
+</label>
+
+<input
+id="slInput"
+type="number"
+value="200">
+
+
+<button onclick="saveSettings()">
+SAVE SETTINGS
+</button>
+
+
+</div>
+
+</details>
+
+
+<!-- WHATSAPP -->
+
+<details>
+
+<summary>
+06 • REAL WHATSAPP
+</summary>
+
+<div class="content">
+
+<p>
+WhatsApp credentials will be entered later.
+</p>
+
+<button onclick="testWhatsApp()">
+SEND REAL TEST
+</button>
+
+<pre id="waResult">
+Waiting...
+</pre>
+
+</div>
+
+</details>
+
+
+<!-- DASHBOARD -->
+
+<details>
+
+<summary>
+08 • DASHBOARD
+</summary>
+
+<div class="content">
+
+<pre id="dashboard">
+Loading...
+</pre>
+
+</div>
+
+</details>
+
+
+<!-- PIONEX -->
+
+<details>
+
+<summary>
+10 • PIONEX API
+</summary>
+
+<div class="content">
+
+<p>
+Pionex API configuration is reserved here.
+</p>
+
+<p>
+API Key: not configured
+</p>
+
+<p>
+API Secret: not configured
+</p>
+
+<p>
+Real order execution remains OFF until configured.
+</p>
+
+</div>
+
+</details>
+
+
+</div>
+
+
+<script>
+
+
+async function refresh(){
+
+try{
+
+const response =
+await fetch("/status");
+
+const s =
+await response.json();
+
+
+document.getElementById(
+"symbol"
+).innerText=s.symbol;
+
+
+document.getElementById(
+"interval"
+).innerText=s.interval;
+
+
+document.getElementById(
+"price"
+).innerText=
+s.price ?? "--";
+
+
+document.getElementById(
+"trend"
+).innerText=
+s.trend ?? "--";
+
+
+document.getElementById(
+"entry"
+).innerText=
+s.entry ?? "--";
+
+
+document.getElementById(
+"tp1"
+).innerText=
+s.tp1 ?? "--";
+
+
+document.getElementById(
+"tp2"
+).innerText=
+s.tp2 ?? "--";
+
+
+document.getElementById(
+"tp3"
+).innerText=
+s.tp3 ?? "--";
+
+
+document.getElementById(
+"sl"
+).innerText=
+s.sl ?? "--";
+
+
+document.getElementById(
+"tsl"
+).innerText=
+s.tsl ?? "--";
+
+
+document.getElementById(
+"whatsapp"
+).innerText=
+s.whatsapp;
+
+
+document.getElementById(
+"dashboard"
+).innerText=
+JSON.stringify(
+s,
+null,
+2
+);
+
+
+const signalBox =
+document.getElementById(
+"signal"
+);
+
+
+signalBox.innerText=
+s.signal || "WAIT";
+
+
+signalBox.className=
+"signal " +
+(
+s.signal==="BUY"
+?"buy"
+:
+s.signal==="SELL"
+?"sell"
+:""
+);
+
+
+}
+
+catch(error){
+
+console.log(error);
+
+}
+
+}
+
+
+async function saveSettings(){
+
+const settings={
+
+atrPeriod:
+Number(
+document.getElementById(
+"atr"
+).value
+),
+
+multiplier:
+Number(
+document.getElementById(
+"multiplier"
+).value
+),
+
+tp1Points:
+Number(
+document.getElementById(
+"tp1Input"
+).value
+),
+
+tp2Points:
+Number(
+document.getElementById(
+"tp2Input"
+).value
+),
+
+tp3Points:
+Number(
+document.getElementById(
+"tp3Input"
+).value
+),
+
+slPoints:
+Number(
+document.getElementById(
+"slInput"
+).value
+)
+
+};
+
+
+const response =
+await fetch(
+"/settings",
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:
+JSON.stringify(settings)
+
+}
+);
+
+
+alert(
+await response.text()
+);
+
+}
+
+
+async function testWhatsApp(){
+
+const response =
+await fetch(
+"/whatsapp/test",
+{
+method:"POST"
+}
+);
+
+const text =
+await response.text();
+
+
+document.getElementById(
+"waResult"
+).innerText=
+text;
+
+}
+
+
+setInterval(
+refresh,
+1000
+);
+
+refresh();
+
+</script>
+
+
+</body>
+
+</html>
+
+`;
+
+
+// =======================================================
+// TRUE RANGE
+// =======================================================
+
+function trueRange(candle, previous){
+
+if(!previous){
+
+return candle.high-candle.low;
+
+}
+
+return Math.max(
+
+candle.high-candle.low,
+
+Math.abs(
+candle.high-
+previous.close
+),
+
+Math.abs(
+candle.low-
+previous.close
+)
+
+);
+
+}
+
+
+// =======================================================
+// ATR
+// =======================================================
+
+function calculateATR(
+candles,
+period
+){
+
+if(
+candles.length <
+period+1
+){
+
+return null;
+
+}
+
+
+let ranges=[];
+
+
+for(
+let i=1;
+i<candles.length;
+i++
+){
+
+ranges.push(
+trueRange(
+candles[i],
+candles[i-1]
+)
+);
+
+}
+
+
+const recent =
+ranges.slice(-period);
+
+
+return recent.reduce(
+(a,b)=>a+b,
+0
+) /
+recent.length;
+
+}
+
+
+// =======================================================
+// SUPERTREND
+// =======================================================
+
+function calculateSuperTrend(
+candles
+){
+
+const period =
+CONFIG.atrPeriod;
+
+const multiplier =
+CONFIG.multiplier;
+
+
+if(
+candles.length <
+period+5
+){
+
+return null;
+
+}
+
+
+let trend=1;
+
+let previousUpper=null;
+
+let previousLower=null;
+
+let previousTrend=1;
+
+let superTrend=null;
+
+
+for(
+let i=1;
+i<candles.length;
+i++
+){
+
+const subset =
+candles.slice(
+0,
+i+1
+);
+
+
+const atr =
+calculateATR(
+subset,
+period
+);
+
+
+if(
+atr===null
+){
+
+continue;
+
+}
+
+
+const candle =
+candles[i];
+
+
+const hl2 =
+(
+candle.high+
+candle.low
+)/2;
+
+
+let upper =
+hl2+
+multiplier*atr;
+
+
+let lower =
+hl2-
+multiplier*atr;
+
+
+if(
+previousUpper!==null
+){
+
+if(
+candle.close<=
+previousUpper
+){
+
+upper =
+Math.min(
+upper,
+previousUpper
+);
+
+}
+
+}
+
+
+if(
+previousLower!==null
+){
+
+if(
+candle.close>=
+previousLower
+){
+
+lower =
+Math.max(
+lower,
+previousLower
+);
+
+}
+
+}
+
+
+if(
+previousTrend===-1 &&
+candle.close>
+previousUpper
+){
+
+trend=1;
+
+}
+
+else if(
+previousTrend===1 &&
+candle.close<
+previousLower
+){
+
+trend=-1;
+
+}
+
+else{
+
+trend=
+previousTrend;
+
+}
+
+
+superTrend =
+trend===1
+?lower
+:upper;
+
+
+previousUpper =
+upper;
+
+previousLower =
+lower;
+
+previousTrend =
+trend;
+
+}
+
+
+return {
+
+trend,
+
+superTrend,
+
+atr:
+calculateATR(
+candles,
+period
+)
+
+};
+
+}
+
+
+// =======================================================
+// GET MARKET DATA
+// =======================================================
+
+function getCandles(){
+
+return new Promise(
+(resolve,reject)=>{
+
+const url =
+"https://api.binance.com/api/v3/klines"+
+"?symbol="+
+CONFIG.symbol+
+"&interval="+
+CONFIG.interval+
+"&limit="+
+CONFIG.candleLimit;
+
+
+https.get(
+url,
+response=>{
+
+let data="";
+
+
+response.on(
+"data",
+chunk=>{
+data+=chunk;
+}
+);
+
+
+response.on(
+"end",
+()=>{
+
+try{
+
+const rows =
+JSON.parse(data);
+
+
+const candles =
+rows.map(
+row=>({
+
+time:
+Number(row[0]),
+
+open:
+Number(row[1]),
+
+high:
+Number(row[2]),
+
+low:
+Number(row[3]),
+
+close:
+Number(row[4])
+
+})
+);
+
+
+resolve(
+candles
+);
+
+
+}
+
+catch(error){
+
+reject(error);
+
+}
+
+}
+);
+
+}
+).on(
+"error",
+reject
+);
+
+}
+);
+
+}
+
+
+// =======================================================
+// WHATSAPP REAL API
+// =======================================================
+
+function sendWhatsApp(
+message
+){
+
+return new Promise(
+(resolve,reject)=>{
+
+const wa =
+CONFIG.whatsapp;
+
+
+if(
+!wa.enabled
+){
+
+reject(
+new Error(
+"WhatsApp disabled."
+)
+);
+
+return;
+
+}
+
+
+if(
+!wa.phoneNumberId ||
+!wa.accessToken ||
+!wa.recipientNumber
+){
+
+reject(
+new Error(
+"WhatsApp API credentials are empty."
+)
+);
+
+return;
+
+}
+
+
+const body =
+JSON.stringify({
+
+messaging_product:
+"whatsapp",
+
+to:
+wa.recipientNumber,
+
+type:
+"text",
+
+text:{
+preview_url:false,
+body:message
+}
+
+});
+
+
+const options={
+
+hostname:
+"graph.facebook.com",
+
+path:
+"/"+
+wa.apiVersion+
+"/"+
+wa.phoneNumberId+
+"/messages",
+
+method:
+"POST",
+
+headers:{
+
+"Authorization":
+"Bearer "+
+wa.accessToken,
+
+"Content-Type":
+"application/json",
+
+"Content-Length":
+Buffer.byteLength(body)
+
+}
+
+};
+
+
+const request =
+https.request(
+options,
+response=>{
+
+let data="";
+
+
+response.on(
+"data",
+chunk=>{
+data+=chunk;
+}
+);
+
+
+response.on(
+"end",
+()=>{
+
+let result;
+
+
+try{
+
+result =
+JSON.parse(data);
+
+}
+
+catch{
+
+result={
+raw:data
+};
+
+}
+
+
+if(
+response.statusCode>=200 &&
+response.statusCode<300
+){
+
+STATE.whatsapp=
+"SENT ✓";
+
+STATE.whatsappError="";
+
+resolve(
+result
+);
+
+}
+
+else{
+
+STATE.whatsapp=
+"FAILED";
+
+STATE.whatsappError=
+JSON.stringify(
+result
+);
+
+reject(
+new Error(
+JSON.stringify(
+result
+)
+)
+);
+
+}
+
+}
+);
+
+}
+);
+
+
+request.on(
+"error",
+error=>{
+
+STATE.whatsapp=
+"FAILED";
+
+STATE.whatsappError=
+error.message;
+
+reject(error);
+
+});
+
+
+request.write(body);
+
+request.end();
+
+}
+);
+
+}
+
+
+// =======================================================
+// SIGNAL MESSAGE
+// =======================================================
+
+function makeMessage(
+signal
+){
+
+return [
+
+"🔔 RANA SUPERTREND SIGNAL",
+
+"",
+
+"Signal: "+
+signal,
+
+"Symbol: "+
+CONFIG.symbol,
+
+"Timeframe: "+
+CONFIG.interval,
+
+"",
+
+"ENTRY: "+
+STATE.entry,
+
+"TP1: "+
+STATE.tp1,
+
+"TP2: "+
+STATE.tp2,
+
+"TP3: "+
+STATE.tp3,
+
+"SL: "+
+STATE.sl,
+
+"TSL: "+
+STATE.tsl,
+
+"",
+
+"LIVE PRICE: "+
+STATE.price,
+
+"SUPERTREND: "+
+STATE.trend,
+
+"",
+
+"Time: "+
+new Date().toLocaleString(
+"en-IN",
+{
+timeZone:
+"Asia/Kolkata"
+}
+)
+
+].join("\n");
+
+}
+
+
+// =======================================================
+// PROCESS NEW SIGNAL
+// =======================================================
+
+async function processSignal(
+signal,
+candle
+){
+
+/*
+==========================================================
+Duplicate protection
+==========================================================
+*/
+
+if(
+STATE.signalCandle===
+candle.time &&
+STATE.signal===
+signal
+){
+
+return;
+
+}
+
+
+STATE.signal=
+signal;
+
+STATE.signalCandle=
+candle.time;
+
+STATE.signalTime=
+new Date().toISOString();
+
+STATE.position=
+signal==="BUY"
+?"LONG"
+:"SHORT";
+
+STATE.entry=
+candle.close;
+
+
+if(
+signal==="BUY"
+){
+
+STATE.tp1=
+STATE.entry+
+CONFIG.tp1Points;
+
+STATE.tp2=
+STATE.entry+
+CONFIG.tp2Points;
+
+STATE.tp3=
+STATE.entry+
+CONFIG.tp3Points;
+
+STATE.sl=
+STATE.entry-
+CONFIG.slPoints;
+
+STATE.tsl=
+STATE.sl;
+
+}
+
+else{
+
+STATE.tp1=
+STATE.entry-
+CONFIG.tp1Points;
+
+STATE.tp2=
+STATE.entry-
+CONFIG.tp2Points;
+
+STATE.tp3=
+STATE.entry-
+CONFIG.tp3Points;
+
+STATE.sl=
+STATE.entry+
+CONFIG.slPoints;
+
+STATE.tsl=
+STATE.sl;
+
+}
+
+
+const message =
+makeMessage(
+signal
+);
+
+STATE.lastMessage=
+message;
+
+
+console.log(
+"\n================================"
+);
+
+console.log(
+message
+);
+
+console.log(
+"================================\n"
+);
+
+
+/*
+==========================================================
+REAL WHATSAPP
+==========================================================
+*/
+
+try{
+
+await sendWhatsApp(
+message
+);
+
+console.log(
+"WhatsApp: REAL MESSAGE SENT"
+);
+
+}
+
+catch(error){
+
+console.error(
+"WhatsApp:",
+error.message
+);
+
+}
+
+
+/*
+==========================================================
+PIONEX
+==========================================================
+
+Real order is intentionally OFF until
+Pionex API credentials are configured.
+
+==========================================================
+*/
+
+if(
+CONFIG.pionex.enabled
+){
+
+console.log(
+"Pionex order module enabled."
+);
+
+console.log(
+"Pionex order execution should be
+configured with the correct API
+permissions/signature before live trading."
+);
+
+}
+
+}
+
+
+// =======================================================
+// MARKET ENGINE
+// =======================================================
+
+async function marketEngine(){
+
+try{
+
+const candles =
+await getCandles();
+
+
+const result =
+calculateSuperTrend(
+candles
+);
+
+
+if(!result){
+
+return;
+
+}
+
+
+const last =
+candles[
+candles.length-1
+];
+
+
+STATE.price=
+last.close;
+
+
+STATE.trend=
+result.trend===1
+?"BULLISH"
+:"BEARISH";
+
+
+STATE.lastUpdate=
+new Date().toISOString();
+
+
+/*
+==========================================================
+NEW SUPERTREND FLIP
+==========================================================
+*/
+
+if(
+STATE.previousTrend!==null &&
+result.trend!==
+STATE.previousTrend
+){
+
+const signal =
+result.trend===1
+?"BUY"
+:"SELL";
+
+
+await processSignal(
+signal,
+last
+);
+
+}
+
+
+STATE.previousTrend=
+result.trend;
+
+
+}
+
+catch(error){
+
+STATE.lastUpdate=
+new Date().toISOString();
+
+STATE.whatsappError=
+error.message;
+
+console.error(
+"ENGINE ERROR:",
+error.message
+);
+
+}
+
+}
+
+
+// =======================================================
+// HTTP BODY
+// =======================================================
+
+function readBody(req){
+
+return new Promise(
+(resolve,reject)=>{
+
+let data="";
+
+
+req.on(
+"data",
+chunk=>{
+data+=chunk;
+}
+);
+
+
+req.on(
+"end",
+()=>{
+
+try{
+
+resolve(
+JSON.parse(
+data||"{}"
+)
+);
+
+}
+
+catch(error){
+
+reject(error);
+
+}
+
+}
+);
+
+}
+);
+
+}
+
+
+// =======================================================
+// SERVER
+// =======================================================
+
+const server =
+http.createServer(
+async(req,res)=>{
+
+
+const url =
+new URL(
+req.url,
+"http://localhost"
+);
+
+
+// -------------------------------------------------------
+// HOME
+// -------------------------------------------------------
+
+if(
+req.method==="GET" &&
+url.pathname==="/"
+){
+
+res.writeHead(
+200,
+{
+"Content-Type":
+"text/html; charset=utf-8"
+}
+);
+
+res.end(
+HTML
+);
+
+return;
+
+}
+
+
+// -------------------------------------------------------
+// STATUS
+// -------------------------------------------------------
+
+if(
+req.method==="GET" &&
+url.pathname==="/status"
+){
+
+res.writeHead(
+200,
+{
+"Content-Type":
+"application/json"
+}
+);
+
+
+res.end(
+JSON.stringify({
+
+symbol:
+CONFIG.symbol,
+
+interval:
+CONFIG.interval,
+
+price:
+STATE.price,
+
+trend:
+STATE.trend,
+
+signal:
+STATE.signal,
+
+position:
+STATE.position,
+
+signalTime:
+STATE.signalTime,
+
+entry:
+STATE.entry,
+
+tp1:
+STATE.tp1,
+
+tp2:
+STATE.tp2,
+
+tp3:
+STATE.tp3,
+
+sl:
+STATE.sl,
+
+tsl:
+STATE.tsl,
+
+whatsapp:
+STATE.whatsapp,
+
+whatsappError:
+STATE.whatsappError,
+
+lastUpdate:
+STATE.lastUpdate
+
+})
+);
+
+
+return;
+
+}
+
+
+// -------------------------------------------------------
+// SETTINGS
+// -------------------------------------------------------
+
+if(
+req.method==="POST" &&
+url.pathname==="/settings"
+){
+
+try{
+
+const body =
+await readBody(req);
+
+
+if(
+Number.isFinite(
+Number(body.atrPeriod)
+)
+){
+
+CONFIG.atrPeriod =
+Number(
+body.atrPeriod
+);
+
+}
+
+
+if(
+Number.isFinite(
+Number(body.multiplier)
+)
+){
+
+CONFIG.multiplier =
+Number(
+body.multiplier
+);
+
+}
+
+
+if(
+Number.isFinite(
+Number(body.tp1Points)
+)
+){
+
+CONFIG.tp1Points =
+Number(
+body.tp1Points
+);
+
+}
+
+
+if(
+Number.isFinite(
+Number(body.tp2Points)
+)
+){
+
+CONFIG.tp2Points =
+Number(
+body.tp2Points
+);
+
+}
+
+
+if(
+Number.isFinite(
+Number(body.tp3Points)
+)
+){
+
+CONFIG.tp3Points =
+Number(
+body.tp3Points
+);
+
+}
+
+
+if(
+Number.isFinite(
+Number(body.slPoints)
+)
+){
+
+CONFIG.slPoints =
+Number(
+body.slPoints
+);
+
+}
+
+
+res.writeHead(
+200,
+{
+"Content-Type":
+"text/plain"
+}
+);
+
+res.end(
+"Settings saved successfully."
+);
+
+
+}
+
+catch(error){
+
+res.writeHead(
+400
+);
+
+res.end(
+"Invalid settings."
+);
+
+}
+
+
+return;
+
+}
+
+
+// -------------------------------------------------------
+// REAL WHATSAPP TEST
+// -------------------------------------------------------
+
+if(
+req.method==="POST" &&
+url.pathname===
+"/whatsapp/test"
+){
+
+const message =
+[
+"✅ RANA SYSTEM",
+
+"",
+
+"REAL WhatsApp API TEST",
+
+"Symbol: "+
+CONFIG.symbol,
+
+"Price: "+
+(
+STATE.price ??
+"N/A"
+),
+
+"Time: "+
+new Date().toLocaleString(
+"en-IN",
+{
+timeZone:
+"Asia/Kolkata"
+}
+)
+
+].join("\n");
+
+
+try{
+
+const result =
+await sendWhatsApp(
+message
+);
+
+
+res.writeHead(
+200,
+{
+"Content-Type":
+"application/json"
+}
+);
+
+
+res.end(
+JSON.stringify({
+success:true,
+apiResponse:result
+})
+);
+
+
+}
+
+catch(error){
+
+res.writeHead(
+400,
+{
+"Content-Type":
+"application/json"
+}
+);
+
+
+res.end(
+JSON.stringify({
+success:false,
+error:error.message
+})
+);
+
+}
+
+
+return;
+
+}
+
+
+// -------------------------------------------------------
+// NOT FOUND
+// --------------------
