@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BTC Trading System</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b0f14;color:#eee;
+ font-family:Arial,sans-serif
+}
+button,input,select{
+ background:#151b23;color:#fff;border:1px solid #303946;
+ border-radius:6px;padding:9px
+}
+button{cursor:pointer;background:#1d63ff}
+button:hover{opacity:.9}
+.header{
+ padding:12px;background:#111720;
+ display:flex;gap:10px;align-items:center;
+ position:sticky;top:0;z-index:10
+}
+.logo{font-size:19px;font-weight:bold}
+.live{
+ margin-left:auto;padding:6px 10px;border-radius:5px;
+ background:#126b3a;font-size:12px
+}
+.price{
+ padding:10px 14px;font-size:25px;font-weight:bold;
+ background:#0f141b
+}
+.wrap{padding:10px}
+.card{
+ background:#111720;border:1px solid #28313c;
+ border-radius:8px;margin-bottom:10px;padding:10px
+}
+.chart{height:48vh;min-height:350px}
+.tfgrid{
+ display:grid;grid-template-columns:repeat(7,1fr);gap:6px
+}
+.tf{
+ background:#171d26;border:1px solid #303946;
+ border-radius:7px;padding:9px;text-align:center
+}
+.tf small{color:#9ba4b0}
+.dir{font-weight:bold;font-size:18px;margin-top:5px}
+.up{color:#00d477}.down{color:#ff5362}.wait{color:#aaa}
+.grid4{
+ display:grid;grid-template-columns:repeat(4,1fr);gap:7px
+}
+.box{
+ background:#171d26;border:1px solid #303946;
+ border-radius:7px;padding:10px
+}
+.box small{color:#9ba4b0}
+.value{font-size:18px;font-weight:bold;margin-top:5px}
+table{width:100%;border-collapse:collapse}
+th,td{
+ padding:8px;border-bottom:1px solid #29313b;
+ text-align:left;font-size:13px
+}
+.actions{
+ display:grid;grid-template-columns:1fr 1fr;gap:8px
+}
+.buy{background:#087f4a}
+.sell{background:#b62b3a}
+.danger{background:#a51e2d}
+.graybtn{background:#343c48}
+details{
+ background:#111720;border:1px solid #28313c;
+ border-radius:8px;margin-bottom:10px
+}
+summary{padding:12px;cursor:pointer;font-weight:bold}
+.inside{padding:10px}
+.row{
+ display:grid;grid-template-columns:1fr 1fr;gap:8px
+}
+.notice{
+ padding:8px;background:#171d26;border-radius:6px;
+ color:#b9c2ce;font-size:12px
+}
+.badge{
+ display:inline-block;padding:4px 7px;
+ border-radius:4px;background:#303946;font-size:11px
+}
+@media(max-width:800px){
+ .tfgrid{grid-template-columns:repeat(4,1fr)}
+ .grid4{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+ <div class="logo">₿ BTC TRADING SYSTEM</div>
+ <span class="badge">SIMULATION</span>
+ <div id="connection" class="live">CONNECTING</div>
+</div>
+
+<div class="price">
+ BTCUSDT
+ <span id="price">--</span>
+</div>
+
+<div class="wrap">
+
+<!-- CHART -->
+<div class="card chart">
+ <div class="tradingview-widget-container"
+      style="height:100%;width:100%">
+  <div class="tradingview-widget-container__widget"
+       style="height:100%;width:100%"></div>
+  <script
+   type="text/javascript"
+   src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+   async>
+  {
+   "autosize":true,
+   "symbol":"BINANCE:BTCUSDT",
+   "interval":"1",
+   "timezone":"Asia/Kolkata",
+   "theme":"dark",
+   "style":"1",
+   "locale":"en",
+   "allow_symbol_change":true,
+   "hide_top_toolbar":false,
+   "hide_legend":false,
+   "support_host":"https://www.tradingview.com"
+  }
+  </script>
+ </div>
+</div>
+
+<!-- TIMEFRAMES -->
+<div class="card">
+ <h3>Timeframes</h3>
+
+ <div class="tfgrid">
+
+  <div class="tf">
+   <small>1 Second</small>
+   <div id="d1s" class="dir wait">WAIT</div>
+   <small id="t1s">--</small>
+  </div>
+
+  <div class="tf">
+   <small>5 Seconds</small>
+   <div id="d5s" class="dir wait">WAIT</div>
+   <small id="t5s">--</small>
+  </div>
+
+  <div class="tf">
+   <small>10 Seconds</small>
+   <div id="d10s" class="dir wait">WAIT</div>
+   <small id="t10s">--</small>
+  </div>
+
+  <div class="tf">
+   <small>30 Seconds</small>
+   <div id="d30s" class="dir wait">WAIT</div>
+   <small id="t30s">--</small>
+  </div>
+
+  <div class="tf">
+   <small>1 Minute</small>
+   <div id="d1m" class="dir wait">WAIT</div>
+   <small id="t1m">--</small>
+  </div>
+
+  <div class="tf">
+   <small>5 Minutes</small>
+   <div id="d5m" class="dir wait">WAIT</div>
+   <small id="t5m">--</small>
+  </div>
+
+  <div class="tf">
+   <small>15 Minutes</small>
+   <div id="d15m" class="dir wait">WAIT</div>
+   <small id="t15m">--</small>
+  </div>
+
+ </div>
+</div>
+
+<!-- DECISION -->
+<div class="card">
+ <h3>Market Decision</h3>
+
+ <div class="grid4">
+
+  <div class="box">
+   <small>UP SCORE</small>
+   <div id="upScore" class="value up">0</div>
+  </div>
+
+  <div class="box">
+   <small>DOWN SCORE</small>
+   <div id="downScore" class="value down">0</div>
+  </div>
+
+  <div class="box">
+   <small>DOMINANT</small>
+   <div id="dominant" class="value wait">WAIT</div>
+  </div>
+
+  <div class="box">
+   <small>STRENGTH</small>
+   <div id="marketStrength" class="value">--</div>
+  </div>
+
+ </div>
+</div>
+
+<!-- INDICATORS -->
+<details open>
+<summary>Indicators</summary>
+
+<div class="inside">
+
+<div class="grid4">
+
+ <div class="box">
+  <small>SuperTrend</small>
+  <div id="st" class="value">WAIT</div>
+ </div>
+
+ <div class="box">
+  <small>EMA 9 / 21</small>
+  <div id="ema" class="value">WAIT</div>
+ </div>
+
+ <div class="box">
+  <small>RSI</small>
+  <div id="rsi" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>MACD</small>
+  <div id="macd" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>VWAP</small>
+  <div id="vwap" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>ATR</small>
+  <div id="atr" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>ADX</small>
+  <div id="adx" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>Bollinger</small>
+  <div id="bb" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>Volume</small>
+  <div id="volume" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>Stoch RSI</small>
+  <div id="stoch" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>Candle Strength</small>
+  <div id="strength" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>Streak</small>
+  <div id="streak" class="value">--</div>
+ </div>
+
+</div>
+</div>
+</details>
+
+<!-- SIGNAL -->
+<div class="card">
+<h3>Signal</h3>
+
+<div class="grid4">
+
+ <div class="box">
+  <small>SIGNAL</small>
+  <div id="signal" class="value wait">WAIT</div>
+ </div>
+
+ <div class="box">
+  <small>ENTRY</small>
+  <div id="entry" class="value">--</div>
+ </div>
+
+ <div class="box">
+  <small>LIVE P&L</small>
+  <div id="pnl" class="value">0.00</div>
+ </div>
+
+ <div class="box">
+  <small>POSITION</small>
+  <div id="position" class="value">FLAT</div>
+ </div>
+
+</div>
+
+<br>
+
+<div class="actions">
+ <button class="buy" onclick="openTrade('BUY')">
+  BUY
+ </button>
+
+ <button class="sell" onclick="openTrade('SELL')">
+  SELL
+ </button>
+</div>
+
+<button class="danger"
+ onclick="closeTrade()">
+ CLOSE POSITION
+</button>
+
+</div>
+
+<!-- TARGET SL -->
+<details open>
+<summary>Target / Stop Loss</summary>
+
+<div class="inside">
+
+<div class="grid4">
+
+ <div class="box">
+  <small>TP1</small>
+  <div id="tp1" class="value up">--</div>
+ </div>
+
+ <div class="box">
+  <small>TP2</small>
+  <div id="tp2" class="value up">--</div>
+ </div>
+
+ <div class="box">
+  <small>TP3</small>
+  <div id="tp3" class="value up">--</div>
+ </div>
+
+ <div class="box">
+  <small>SL</small>
+  <div id="sl" class="value down">--</div>
+ </div>
+
+</div>
+
+</div>
+</details>
+
+<!-- BALANCE -->
+<details open>
+<summary>Wallet / Balance</summary>
+
+<div class="inside">
+
+<div class="grid4">
+
+ <div class="box">
+  <small>Balance</small>
+  <div id="balance" class="value">₹100000</div>
+ </div>
+
+ <div class="box">
+  <small>Used</small>
+  <div id="used" class="value">₹0</div>
+ </div>
+
+ <div class="box">
+  <small>Available</small>
+  <div id="available" class="value">₹100000</div>
+ </div>
+
+ <div class="box">
+  <small>Total P&L</small>
+  <div id="totalPnl" class="value">₹0</div>
+ </div>
+
+</div>
+
+</div>
+</details>
+
+<!-- ORDERS -->
+<details>
+<summary>Orders</summary>
+
+<div class="inside">
+
+<table>
+<thead>
+<tr>
+<th>Side</th>
+<th>Entry</th>
+<th>Qty</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody id="orders"></tbody>
+
+</table>
+
+</div>
+</details>
+
+<!-- HISTORY -->
+<details>
+<summary>Trade History</summary>
+
+<div class="inside">
+
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Side</th>
+<th>Entry</th>
+<th>Exit</th>
+<th>P&L</th>
+</tr>
+</thead>
+
+<tbody id="history"></tbody>
+
+</table>
+
+</div>
+</details>
+
+<!-- ALERT -->
+<details open>
+<summary>Alerts</summary>
+
+<div class="inside">
+
+<div class="notice">
+SuperTrend direction change होने पर browser notification भेजी जाएगी।
+</div>
+
+<button onclick="enableAlerts()">
+ENABLE ALERT
+</button>
+
+</div>
+</details>
+
+<!-- SETTINGS -->
+<details>
+<summary>Settings</summary>
+
+<div class="inside">
+
+<div class="row">
+
+<div>
+<label>ATR Period</label>
+<input id="atrPeriod" type="number" value="10">
+</div>
+
+<div>
+<label>Multiplier</label>
+<input id="multiplier" type="number" step="0.1" value="3">
+</div>
+
+<div>
+<label>TP1 Points</label>
+<input id="tp1Points" type="number" value="300">
+</div>
+
+<div>
+<label>TP2 Points</label>
+<input id="tp2Points" type="number" value="600">
+</div>
+
+<div>
+<label>TP3 Points</label>
+<input id="tp3Points" type="number" value="900">
+</div>
+
+<div>
+<label>SL Points</label>
+<input id="slPoints" type="number" value="200">
+</div>
+
+</div>
+
+<br>
+
+<button onclick="saveSettings()">
+SAVE SETTINGS
+</button>
+
+<button class="graybtn"
+ onclick="resetDemo()">
+RESET DEMO ACCOUNT
+</button>
+
+</div>
+</details>
+
+<!-- ADMIN -->
+<details>
+<summary>Admin / Membership</summary>
+
+<div class="inside">
+
+<div class="row">
+
+<div>
+<label>Admin Username</label>
+<input id="adminUser" value="admin">
+</div>
+
+<div>
+<label>Admin Password</label>
+<input id="adminPass" type="password" value="admin123">
+</div>
+
+</div>
+
+<br>
+
+<div class="row">
+
+<div>
+<label>Membership</label>
+<select id="membership">
+<option>Free</option>
+<option>Basic</option>
+<option>Pro</option>
+<option>Premium</option>
+<option>Admin</option>
+</select>
+</div>
+
+<div>
+<label>Membership Days</label>
+<input id="memberDays" type="number" value="30">
+</div>
+
+</div>
+
+<br>
+
+<div class="notice">
+Demo wallet में deposit request को Admin approve करने के बाद balance बढ़ेगा।
+</div>
+
+<br>
+
+<div class="row">
+
+<input id="depositAmount"
+       type="number"
+       placeholder="Deposit amount">
+
+<button onclick="adminDeposit()">
+ADMIN CREDIT
+</button>
+
+</div>
+
+</div>
+</details>
+
+<!-- SYSTEM -->
+<details>
+<summary>System Status</summary>
+
+<div class="inside">
+
+<table>
+
+<tr>
+<td>Market</td>
+<td>BTCUSDT</td>
+</tr>
+
+<tr>
+<td>Data</td>
+<td>Binance WebSocket</td>
+</tr>
+
+<tr>
+<td>Ticks</td>
+<td id="ticks">0</td>
+</tr>
+
+<tr>
+<td>Last Update</td>
+<td id="updated">--</td>
+</tr>
+
+<tr>
+<td>Engine</td>
+<td>RUNNING</td>
+</tr>
+
+</table>
+
+</div>
+</details>
+
+</div>
+
+
+<script>
+
+/* =========================
+   CONFIG
+========================= */
+
+let cfg={
+ atr:Number(localStorage.getItem("atr")||10),
+ mult:Number(localStorage.getItem("mult")||3),
+ tp1:Number(localStorage.getItem("tp1")||300),
+ tp2:Number(localStorage.getItem("tp2")||600),
+ tp3:Number(localStorage.getItem("tp3")||900),
+ sl:Number(localStorage.getItem("sl")||200)
+};
+
+
+/* =========================
+   MARKET
+========================= */
+
+const TF={
+ "1s":1000,
+ "5s":5000,
+ "10s":10000,
+ "30s":30000,
+ "1m":60000,
+ "5m":300000,
+ "15m":900000
+};
+
+let data={};
+
+for(const k in TF){
+ data[k]=[];
+}
+
+let current={};
+
+let livePrice=0;
+let ticks=0;
+
+
+/* =========================
+   DEMO ACCOUNT
+========================= */
+
+let account={
+ balance:Number(
+  localStorage.getItem("balance")||100000
+ ),
+ totalPnl:Number(
+  localStorage.getItem("totalPnl")||0
+ )
+};
+
+let position=null;
+let history=[];
+
+
+/* =========================
+   HELPERS
+========================= */
+
+function $(id){
+ return document.getElementById(id);
+}
+
+function fmt(n){
+ if(n==null||isNaN(n))return "--";
+ return Number(n).toFixed(2);
+}
+
+function avg(a){
+ if(!a.length)return null;
+ return a.reduce((x,y)=>x+y,0)/a.length;
+}
+
+
+/* =========================
+   EMA
+========================= */
+
+function EMA(a,n){
+
+ if(a.length<n)return null;
+
+ let e=avg(a.slice(0,n));
+ let k=2/(n+1);
+
+ for(let i=n;i<a.length;i++)
+  e=a[i]*k+e*(1-k);
+
+ return e;
+}
+
+
+/* =========================
+   RSI
+========================= */
+
+function RSI(a,n=14){
+
+ if(a.length<n+1)return null;
+
+ let gain=0,loss=0;
+
+ for(let i=1;i<=n;i++){
+
+  let d=a[i]-a[i-1];
+
+  if(d>0)gain+=d;
+  else loss-=d;
+ }
+
+ gain/=n;
+ loss/=n;
+
+ for(let i=n+1;i<a.length;i++){
+
+  let d=a[i]-a[i-1];
+
+  gain=(gain*(n-1)+Math.max(d,0))/n;
+  loss=(loss*(n-1)+Math.max(-d,0))/n;
+ }
+
+ if(loss===0)return 100;
+
+ return 100-100/(1+gain/loss);
+}
+
+
+/* =========================
+   ATR
+========================= */
+
+function ATR(a,n){
+
+ if(a.length<n+1)return null;
+
+ let tr=[];
+
+ for(let i=1;i<a.length;i++){
+
+  let c=a[i],p=a[i-1];
+
+  tr.push(
+   Math.max(
+    c.high-c.low,
+    Math.abs(c.high-p.close),
+    Math.abs(c.low-p.close)
+   )
+  );
+ }
+
+ return avg(tr.slice(-n));
+}
+
+
+/* =========================
+   SUPERTREND
+========================= */
+
+function ST(a){
+
+ if(a.length<cfg.atr+2)
+  return null;
+
+ let trend=1;
+ let upper=0;
+ let lower=0;
+
+ for(let i=cfg.atr;i<a.length;i++){
+
+  let atr=ATR(
+   a.slice(Math.max(0,i-cfg.atr),i+1),
+   cfg.atr
+  );
+
+  if(atr==null)continue;
+
+  let c=a[i];
+
+  let mid=(c.high+c.low)/2;
+
+  let bu=mid+cfg.mult*atr;
+  let bl=mid-cfg.mult*atr;
+
+  if(i===cfg.atr){
+
+   upper=bu;
+   lower=bl;
+
+  }else{
+
+   let p=a[i-1];
+
+   upper=
+    p.close<=upper
+     ?Math.min(bu,upper)
+     :bu;
+
+   lower=
+    p.close>=lower
+     ?Math.max(bl,lower)
+     :bl;
+  }
+
+  if(trend===-1&&c.close>upper)
+   trend=1;
+
+  else if(trend===1&&c.close<lower)
+   trend=-1;
+ }
+
+ return trend;
+}
+
+
+/* =========================
+   ADD TICK
+========================= */
+
+function addTick(p,t){
+
+ livePrice=p;
+ ticks++;
+
+ $("price").innerText=fmt(p);
+ $("ticks").innerText=ticks;
+ $("updated").innerText=
+  new Date().toLocaleTimeString();
+
+ for(const k in TF){
+
+  let bucket=
+   Math.floor(t/TF[k])*TF[k];
+
+  let c=current[k];
+
+  if(!c||c.time!==bucket){
+
+   if(c){
+    data[k].push(c);
+
+    if(data[k].length>300)
+     data[k].shift();
+   }
+
+   current[k]={
+    time:bucket,
+    open:p,
+    high:p,
+    low:p,
+    close:p,
+    volume:1
+   };
+
+  }else{
+
+   c.high=Math.max(c.high,p);
+   c.low=Math.min(c.low,p);
+   c.close=p;
+   c.volume++;
+  }
+ }
+}
+
+
+/* =========================
+   TIMEFRAME UI
+========================= */
+
+function updateTF(k){
+
+ let a=data[k];
+
+ if(a.length<2)return;
+
+ let x=a[a.length-1];
+ let y=a[a.length-2];
+
+ let d=
+  x.close>y.close?"UP":
+  x.close<y.close?"DOWN":"WAIT";
+
+ let el=$("d"+k);
+
+ el.innerText=d;
+ el.className=
+  "dir "+
+  (d==="UP"?"up":d==="DOWN"?"down":"wait");
+
+ let remaining=
+  x.time+TF[k]-Date.now();
+
+ $("t"+k).innerText=
+  Math.max(0,Math.ceil(remaining/1000))+"s";
+}
+
+
+/* =========================
+   INDICATORS
+========================= */
+
+function updateIndicators(){
+
+ let a=data["1m"];
+
+ if(a.length<40)return;
+
+ let close=a.map(x=>x.close);
+ let last=close[close.length-1];
+
+ let st=ST(a);
+
+ if(st){
+
+  $("st").innerText=
+   st===1?"BULLISH":"BEARISH";
+
+  $("st").className=
+   "value "+(st===1?"up":"down");
+ }
+
+ let e9=EMA(close,9);
+ let e21=EMA(close,21);
+
+ if(e9&&e21){
+
+  let d=e9>e21?"UP":"DOWN";
+
+  $("ema").innerText=d;
+  $("ema").className=
+   "value "+(d==="UP"?"up":"down");
+ }
+
+ let r=RSI(close);
+
+ if(r!=null)
+  $("rsi").innerText=r.toFixed(1);
+
+ let fast=EMA(close,12);
+ let slow=EMA(close,26);
+
+ if(fast&&slow){
+
+  let m=fast-slow;
+
+  $("macd").innerText=fmt(m);
+  $("macd").className=
+   "value "+(m>0?"up":"down");
+ }
+
+ let vwap=VWAP(a);
+
+ if(vwap){
+
+  let d=last>vwap?"ABOVE":"BELOW";
+
+  $("vwap").innerText=d;
+  $("vwap").className=
+   "value "+(d==="ABOVE"?"up":"down");
+ }
+
+ let atr=ATR(a,cfg.atr);
+
+ if(atr)
+  $("atr").innerText=fmt(atr);
+
+ let adx=ADX(a);
+
+ if(adx!=null)
+  $("adx").innerText=adx.toFixed(1);
+
+ let bb=Bollinger(close);
+
+ if(bb){
+
+  let d=
+   last>bb.upper?"ABOVE":
+   last<bb.lower?"BELOW":"INSIDE";
+
+  $("bb").innerText=d;
+ }
+
+ let vol=avg(
+  a.slice(-20).map(x=>x.volume)
+ );
+
+ $("volume").innerText=
+  a[a.length-1].volume>vol
+   ?"HIGH":"NORMAL";
+
+ let sr=StochRSI(close);
+
+ if(sr!=null)
+  $("stoch").innerText=sr.toFixed(1);
+
+ let c=a[a.length-1];
+
+ let range=c.high-c.low;
+ let body=Math.abs(c.close-c.open);
+
+ if(range){
+
+  let strength=body/range*100;
+
+  $("strength").innerText=
+   strength.toFixed(0)+"%";
+ }
+
+}
+
+
+/* =========================
+   VWAP
+========================= */
+
+function VWAP(a){
+
+ let pv=0,v=0;
+
+ for(const c of a){
+
+  let tp=
+   (c.high+c.low+c.close)/3;
+
+  pv+=tp*c.volume;
+  v+=c.volume;
+ }
+
+ return v?pv/v:null;
+}
+
+
+/* =========================
+   BOLLINGER
+========================= */
+
+function Bollinger(a,n=20){
+
+ if(a.length<n)return null;
+
+ let x=a.slice(-n);
+ let m=avg(x);
+
+ let sd=Math.sqrt(
+  avg(x.map(v=>(v-m)**2))
+ );
+
+ return{
+  middle:m,
+  upper:m+2*sd,
+  lower:m-2*sd
+ };
+}
+
+
+/* =========================
+   ADX
+========================= */
+
+function ADX(a,n=14){
+
+ if(a.length<n+2)return null;
+
+ let tr=0,plus=0,minus=0;
+
+ for(let i=a.length-n;i<a.length;i++){
+
+  let c=a[i],p=a[i-1];
+
+  tr+=Math.max(
+   c.high-c.low,
+   Math.abs(c.high-p.close),
+   Math.abs(c.low-p.close)
+  );
+
+  let up=c.high-p.high;
+  let dn=p.low-c.low;
+
+  if(up>dn&&up>0)plus+=up;
+  if(dn>up&&dn>0)minus+=dn;
+ }
+
+ if(!tr)return 0;
+
+ let pdi=100*plus/tr;
+ let mdi=100*minus/tr;
+
+ return pdi+mdi
+  ?100*Math.abs(pdi-mdi)/(pdi+mdi)
+  :0;
+}
+
+
+/* =========================
+   STOCH RSI
+========================= */
+
+function StochRSI(a){
+
+ if(a.length<30)return null;
+
+ let rs=[];
+
+ for(let i=14;i<a.length;i++)
+  rs.push(RSI(a.slice(0,i+1),14));
+
+ let x=rs.slice(-14);
+
+ if(x.length<14)return null;
+
+ let lo=Math.min(...x);
+ let hi=Math.max(...x);
+
+ if(hi===lo)return 50;
+
+ return (x[x.length-1]-lo)/(hi-lo)*100;
+}
+
+
+/* =========================
+   SCORE
+========================= */
+
+function updateScore(){
+
+ let up=0,down=0;
+
+ for(const k in TF){
+
+  let a=data[k];
+
+  if(a.length<2)continue;
+
+  let x=a[a.length-1];
+  let y=a[a.length-2];
+
+  if(x.close>y.close)up++;
+  if(x.close<y.close)down++;
+ }
+
+ $("upScore").innerText=up;
+ $("downScore").innerText=down;
+
+ let d=
+  up>down?"UP":
+  down>up?"DOWN":"WAIT";
+
+ $("dominant").innerText=d;
+ $("dominant").className=
+  "value "+
+  (d==="UP"?"up":d==="DOWN"?"down":"wait");
+
+ $("marketStrength").innerText=
+  Math.max(up,down)+"/7";
+}
+
+
+/* =========================
+   TRADE
+========================= */
+
+function openTrade(side){
+
+ if(!livePrice)return;
+
+ if(position){
+
+  alert("Position already open");
+  return;
+ }
+
+ let entry=livePrice;
+
+ let qty=1;
+
+ position={
+  side,
+  entry,
+  qty,
+  time:Date.now(),
+  tp1:side==="BUY"
+   ?entry+cfg.tp1
+   :entry-cfg.tp1,
+
+  tp2:side==="BUY"
+   ?entry+cfg.tp2
+   :entry-cfg.tp2,
+
+  tp3:side==="BUY"
+   ?entry+cfg.tp3
+   :entry-cfg.tp3,
+
+  sl:side==="BUY"
+   ?entry-cfg.sl
+   :entry+cfg.sl
+ };
+
+ $("signal").innerText=side;
+ $("signal").className=
+  "value "+(side==="BUY"?"up":"down");
+
+ $("entry").innerText=fmt(entry);
+ $("position").innerText=side;
+
+ renderTrade();
+
+}
+
+
+/* =========================
+   TRADE DISPLAY
+========================= */
+
+function renderTrade(){
+
+ if(!position){
+
+  $("entry").innerText="--";
+  $("tp1").innerText="--";
+  $("tp2").innerText="--";
+  $("tp3").innerText="--";
+  $("sl").innerText="--";
+  $("position").innerText="FLAT";
+
+  return;
+ }
+
+ $("entry").innerText=fmt(position.entry);
+ $("tp1").innerText=fmt(position.tp1);
+ $("tp2").innerText=fmt(position.tp2);
+ $("tp3").innerText=fmt(position.tp3);
+ $("sl").innerText=fmt(position.sl);
+
+}
+
+
+/* =========================
+   LIVE PNL
+========================= */
+
+function updatePnL(){
+
+ if(!position){
+
+  $("pnl").innerText="0.00";
+  return;
+ }
+
+ let pnl=
+  position.side==="BUY"
+   ?livePrice-position.entry
+   :position.entry-livePrice;
+
+ $("pnl").innerText=fmt(pnl);
+
+ $("pnl").className=
+  "value "+(pnl>=0?"up":"down");
+
+ checkTargets(pnl);
+}
+
+
+/* =========================
+   TARGET / SL
+========================= */
+
+function checkTargets(){
+
+ if(!posit
