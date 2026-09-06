@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Trading System</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#131722;
+    color:#fff;
+    font-family:Arial,sans-serif;
+}
+
+button,input,select{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+#app{
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+}
+
+/* TOP */
+
+.top{
+    height:48px;
+    min-height:48px;
+    background:#1e222d;
+    border-bottom:1px solid #363a45;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 8px;
+    overflow-x:auto;
+}
+
+.logo{
+    font-weight:bold;
+    white-space:nowrap;
+}
+
+.top button{
+    background:#131722;
+    color:#ddd;
+    border:1px solid #454a55;
+    border-radius:4px;
+    padding:6px 10px;
+    white-space:nowrap;
+}
+
+.top button.active{
+    background:#2962ff;
+    border-color:#2962ff;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    min-height:0;
+    display:flex;
+    overflow:hidden;
+}
+
+.chart-area{
+    flex:1;
+    min-width:0;
+    position:relative;
+}
+
+.tradingview-widget-container{
+    width:100%;
+    height:100%;
+}
+
+.tradingview-widget-container__widget{
+    width:100%;
+    height:100%;
+}
+
+/* SIDE PANEL */
+
+.side{
+    width:310px;
+    min-width:310px;
+    background:#171b26;
+    border-left:1px solid #363a45;
+    overflow-y:auto;
+    padding:10px;
+}
+
+.section{
+    border:1px solid #343946;
+    border-radius:7px;
+    margin-bottom:9px;
+    overflow:hidden;
+}
+
+.section-title{
+    background:#202532;
+    padding:9px;
+    font-weight:bold;
+    font-size:13px;
+}
+
+.section-body{
+    padding:9px;
+}
+
+.row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:7px;
+    margin-bottom:7px;
+}
+
+.row:last-child{
+    margin-bottom:0;
+}
+
+.row label{
+    color:#aeb6c2;
+    font-size:12px;
+}
+
+input,select{
+    width:125px;
+    height:31px;
+    background:#10141c;
+    color:#fff;
+    border:1px solid #414754;
+    border-radius:4px;
+    padding:0 7px;
+}
+
+button.action{
+    width:100%;
+    height:32px;
+    border:0;
+    border-radius:4px;
+    background:#2962ff;
+    color:white;
+    font-weight:bold;
+    margin-top:6px;
+}
+
+button.green{
+    background:#00a86b;
+}
+
+button.red{
+    background:#e5484d;
+}
+
+button.gray{
+    background:#414754;
+}
+
+/* SIGNAL */
+
+.signal{
+    text-align:center;
+    padding:12px;
+    font-size:20px;
+    font-weight:bold;
+    border-radius:5px;
+    background:#252b36;
+}
+
+.signal.buy{
+    background:#064f3c;
+    color:#35e69d;
+}
+
+.signal.sell{
+    background:#5a1e25;
+    color:#ff777c;
+}
+
+.signal.wait{
+    color:#aeb6c2;
+}
+
+/* DASHBOARD */
+
+.dashboard{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:5px;
+}
+
+.card{
+    background:#10141c;
+    border:1px solid #303642;
+    border-radius:5px;
+    padding:7px;
+}
+
+.card .name{
+    font-size:10px;
+    color:#8d96a3;
+}
+
+.card .value{
+    margin-top:3px;
+    font-size:13px;
+    font-weight:bold;
+}
+
+/* STATUS */
+
+.status{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:5;
+    background:rgba(18,23,34,.92);
+    border:1px solid #39404d;
+    border-radius:5px;
+    padding:7px 9px;
+    font-size:11px;
+}
+
+.status span{
+    color:#35e69d;
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+    .main{
+        flex-direction:column;
+    }
+
+    .chart-area{
+        height:55%;
+        flex:none;
+    }
+
+    .side{
+        width:100%;
+        min-width:0;
+        height:45%;
+        border-left:0;
+        border-top:1px solid #363a45;
+    }
+}
+
+@media(max-width:500px){
+
+    .chart-area{
+        height:52%;
+    }
+
+    .side{
+        height:48%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<!-- ==================================================
+     TOP BAR
+================================================== -->
+
+<div class="top">
+
+    <div class="logo">
+        Trading System
+    </div>
+
+    <button class="tf active" data-tf="1">
+        1m
+    </button>
+
+    <button class="tf" data-tf="3">
+        3m
+    </button>
+
+    <button class="tf" data-tf="5">
+        5m
+    </button>
+
+    <button class="tf" data-tf="15">
+        15m
+    </button>
+
+    <button class="tf" data-tf="30">
+        30m
+    </button>
+
+    <button class="tf" data-tf="60">
+        1H
+    </button>
+
+    <button class="tf" data-tf="240">
+        4H
+    </button>
+
+    <button class="tf" data-tf="D">
+        1D
+    </button>
+
+</div>
+
+
+<!-- ==================================================
+     MAIN
+================================================== -->
+
+<div class="main">
+
+<!-- CHART -->
+
+<div class="chart-area">
+
+    <div class="status">
+        Chart: <span id="chartStatus">LIVE</span>
+    </div>
+
+    <div
+        class="tradingview-widget-container"
+        style="height:100%;width:100%"
+    >
+
+        <div
+            class="tradingview-widget-container__widget"
+            style="height:100%;width:100%"
+        ></div>
+
+        <script
+            type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+            async>
+        {
+            "width":"100%",
+            "height":"100%",
+            "symbol":"BINANCE:BTCUSDT",
+            "interval":"5",
+            "timezone":"Asia/Kolkata",
+            "theme":"dark",
+            "style":"1",
+            "locale":"en",
+            "allow_symbol_change":true,
+            "calendar":true,
+            "studies":[
+                "Supertrend@tv-basicstudies",
+                "MASimple@tv-basicstudies"
+            ],
+            "support_host":"https://www.tradingview.com"
+        }
+        </script>
+
+    </div>
+
+</div>
+
+
+<!-- ==================================================
+     SIDE PANEL
+================================================== -->
+
+<div class="side">
+
+
+<!-- SIGNAL -->
+
+<div class="section">
+
+    <div class="section-title">
+        03 • SIGNAL
+    </div>
+
+    <div class="section-body">
+
+        <div id="signalBox"
+             class="signal wait">
+            WAIT
+        </div>
+
+        <div class="row"
+             style="margin-top:8px">
+
+            <label>
+                Current Price
+            </label>
+
+            <strong id="livePrice">
+                --
+            </strong>
+
+        </div>
+
+        <button
+            class="action green"
+            onclick="manualBuy()">
+            BUY SIGNAL
+        </button>
+
+        <button
+            class="action red"
+            onclick="manualSell()">
+            SELL SIGNAL
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- SUPERTREND -->
+
+<div class="section">
+
+    <div class="section-title">
+        02 • SUPERTREND
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                ATR Period
+            </label>
+
+            <input
+                id="atrPeriod"
+                type="number"
+                value="10"
+                min="1">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                Multiplier
+            </label>
+
+            <input
+                id="multiplier"
+                type="number"
+                value="3"
+                step="0.1"
+                min="0.1">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                Source
+            </label>
+
+            <select id="source">
+
+                <option value="hl2">
+                    HL2
+                </option>
+
+                <option value="close">
+                    Close
+                </option>
+
+                <option value="open">
+                    Open
+                </option>
+
+                <option value="high">
+                    High
+                </option>
+
+                <option value="low">
+                    Low
+                </option>
+
+            </select>
+
+        </div>
+
+        <button
+            class="action"
+            onclick="saveSuperTrend()">
+            SAVE SUPERTREND
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- TARGET -->
+
+<div class="section">
+
+    <div class="section-title">
+        04 • TARGET
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                TP1 Points
+            </label>
+
+            <input
+                id="tp1"
+                type="number"
+                value="300">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                TP2 Points
+            </label>
+
+            <input
+                id="tp2"
+                type="number"
+                value="600">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                TP3 Points
+            </label>
+
+            <input
+                id="tp3"
+                type="number"
+                value="900">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="saveTargets()">
+            SAVE TARGET
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- STOP LOSS -->
+
+<div class="section">
+
+    <div class="section-title">
+        05 • STOP LOSS
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                Initial SL
+            </label>
+
+            <input
+                id="sl"
+                type="number"
+                value="200">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                Trail Step
+            </label>
+
+            <input
+                id="trail"
+                type="number"
+                value="100">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="saveStopLoss()">
+            SAVE SL / TSL
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ALERT -->
+
+<div class="section">
+
+    <div class="section-title">
+        06 • ALERT
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                BUY Alert
+            </label>
+
+            <input
+                id="buyAlert"
+                type="checkbox"
+                style="width:20px">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                SELL Alert
+            </label>
+
+            <input
+                id="sellAlert"
+                type="checkbox"
+                style="width:20px">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                Target Alert
+            </label>
+
+            <input
+                id="targetAlert"
+                type="checkbox"
+                style="width:20px">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                SL Alert
+            </label>
+
+            <input
+                id="slAlert"
+                type="checkbox"
+                style="width:20px">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="requestNotifications()">
+            ENABLE NOTIFICATION
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- SETTINGS -->
+
+<div class="section">
+
+    <div class="section-title">
+        07 • SETTINGS
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                Symbol
+            </label>
+
+            <input
+                id="symbol"
+                value="BTCUSDT">
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                Timeframe
+            </label>
+
+            <input
+                id="currentTF"
+                value="5m">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="saveAllSettings()">
+            SAVE ALL SETTINGS
+        </button>
+
+        <button
+            class="action gray"
+            onclick="resetAllSettings()">
+            RESET ALL
+        </button>
+
+        <div id="saveMessage"
+             style="
+             text-align:center;
+             color:#35e69d;
+             font-size:11px;
+             margin-top:7px;">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- DASHBOARD -->
+
+<div class="section">
+
+    <div class="section-title">
+        08 • DASHBOARD
+    </div>
+
+    <div class="section-body">
+
+        <div class="dashboard">
+
+            <div class="card">
+                <div class="name">SIGNAL</div>
+                <div class="value"
+                     id="dashSignal">
+                    WAIT
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">POSITION</div>
+                <div class="value"
+                     id="dashPosition">
+                    NONE
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">ENTRY</div>
+                <div class="value"
+                     id="dashEntry">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">LIVE PRICE</div>
+                <div class="value"
+                     id="dashPrice">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">TP1</div>
+                <div class="value"
+                     id="dashTP1">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">TP2</div>
+                <div class="value"
+                     id="dashTP2">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">TP3</div>
+                <div class="value"
+                     id="dashTP3">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">SL</div>
+                <div class="value"
+                     id="dashSL">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">TSL</div>
+                <div class="value"
+                     id="dashTSL">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="name">P&L</div>
+                <div class="value"
+                     id="dashPNL">
+                    0
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ORDER -->
+
+<div class="section">
+
+    <div class="section-title">
+        09 • ORDER
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                Quantity
+            </label>
+
+            <input
+                id="quantity"
+                type="number"
+                value="1"
+                step="0.001">
+
+        </div>
+
+        <button
+            class="action green"
+            onclick="placeOrder('BUY')">
+            PLACE BUY ORDER
+        </button>
+
+        <button
+            class="action red"
+            onclick="placeOrder('SELL')">
+            PLACE SELL ORDER
+        </button>
+
+        <button
+            class="action gray"
+            onclick="closePosition()">
+            CLOSE POSITION
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- EXCHANGE -->
+
+<div class="section">
+
+    <div class="section-title">
+        10 • EXCHANGE API
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                Exchange
+            </label>
+
+            <select id="exchange">
+
+                <option>
+                    Pionex
+                </option>
+
+                <option>
+                    Binance
+                </option>
+
+                <option>
+                    Other
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="row">
+
+            <label>
+                API Status
+            </label>
+
+            <strong id="apiStatus">
+                NOT CONNECTED
+            </strong>
+
+        </div>
+
+        <button
+            class="action"
+            onclick="testAPI()">
+            TEST API CONNECTION
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- WEBHOOK -->
+
+<div class="section">
+
+    <div class="section-title">
+        11 • API / WEBHOOK
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                Webhook URL
+            </label>
+
+            <input
+                id="webhookURL"
+                placeholder="https://...">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="testWebhook()">
+            TEST WEBHOOK
+        </button>
+
+        <div
+            id="webhookStatus"
+            style="
+            font-size:11px;
+            color:#8d96a3;
+            margin-top:7px;">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- WHATSAPP -->
+
+<div class="section">
+
+    <div class="section-title">
+        12 • WHATSAPP ALERT
+    </div>
+
+    <div class="section-body">
+
+        <div class="row">
+
+            <label>
+                WhatsApp
+            </label>
+
+            <input
+                id="whatsappEnabled"
+                type="checkbox"
+                style="width:20px">
+
+        </div>
+
+        <button
+            class="action"
+            onclick="sendWhatsAppTest()">
+            TEST WHATSAPP
+        </button>
+
+        <div
+            id="whatsappStatus"
+            style="
+            font-size:11px;
+            color:#8d96a3;
+            margin-top:7px;">
+        </div>
+
+    </div>
+
+</div>
+
+
+</div>
+</div>
+</div>
+
+
+<script>
+
+/* =====================================================
+   SYSTEM STATE
+===================================================== */
+
+const state = {
+
+    symbol:"BTCUSDT",
+
+    timeframe:"5m",
+
+    price:0,
+
+    signal:"WAIT",
+
+    position:"NONE",
+
+    entry:0,
+
+    tp1:0,
+
+    tp2:0,
+
+    tp3:0,
+
+    sl:0,
+
+    tsl:0,
+
+    pnl:0,
+
+    quantity:1,
+
+    apiConnected:false
+
+};
+
+
+/* =====================================================
+   LOAD SETTINGS
+===================================================== */
+
+function loadSettings(){
+
+    try{
+
+        const saved =
+            localStorage.getItem(
+                "trading_system_settings"
+            );
+
+        if(!saved)
+            return;
+
+        const data =
+            JSON.parse(saved);
+
+
+        document.getElementById(
+            "atrPeriod"
+        ).value =
+            data.atrPeriod ?? 10;
+
+
+        document.getElementById(
+            "multiplier"
+        ).value =
+            data.multiplier ?? 3;
+
+
+        document.getElementById(
+            "source"
+        ).value =
+            data.source ?? "hl2";
+
+
+        document.getElementById(
+            "tp1"
+        ).value =
+            data.tp1 ?? 300;
+
+
+        document.getElementById(
+            "tp2"
+        ).value =
+            data.tp2 ?? 600;
+
+
+        document.getElementById(
+            "tp3"
+        ).value =
+            data.tp3 ?? 900;
+
+
+        document.getElementById(
+            "sl"
+        ).value =
+            data.sl ?? 200;
+
+
+        document.getElementById(
+            "trail"
+        ).value =
+            data.trail ?? 100;
+
+
+        document.getElementById(
+            "quantity"
+        ).value =
+            data.quantity ?? 1;
+
+
+        document.getElementById(
+            "symbol"
+        ).value =
+            data.symbol ?? "BTCUSDT";
+
+
+    }catch(error){
+
+        console.log(error);
+
+    }
+
+}
+
+
+/* =====================================================
+   SAVE ALL
+===================================================== */
+
+function saveAllSettings(){
+
+    const data = {
+
+        atrPeriod:
+            Number(
+                document.getElementById(
+                    "atrPeriod"
+                ).value
+            ),
+
+        multiplier:
+            Number(
+                document.getElementById(
+                    "multiplier"
+                ).value
+            ),
+
+        source:
+            document.getElementById(
+                "source"
+            ).value,
+
+        tp1:
+            Number(
+                document.getElementById(
+                    "tp1"
+                ).value
+            ),
+
+        tp2:
+            Number(
+                document.getElementById(
+   
