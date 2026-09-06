@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Sanjay Trading Dashboard</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    background:#07111f;
+    color:#fff;
+}
+
+/* HEADER */
+header{
+    height:64px;
+    background:#091625;
+    border-bottom:1px solid #20364d;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 20px;
+    position:sticky;
+    top:0;
+    z-index:20;
+}
+
+.logo{
+    font-size:20px;
+    font-weight:bold;
+}
+
+.logo span{
+    color:#3b82f6;
+}
+
+.user{
+    color:#9fb3c8;
+    font-size:13px;
+}
+
+/* LAYOUT */
+.layout{
+    display:flex;
+    min-height:calc(100vh - 64px);
+}
+
+.sidebar{
+    width:235px;
+    background:#091625;
+    border-right:1px solid #20364d;
+    padding:15px;
+    position:fixed;
+    top:64px;
+    bottom:0;
+}
+
+.nav{
+    width:100%;
+    padding:12px;
+    margin:5px 0;
+    border:0;
+    border-radius:9px;
+    background:transparent;
+    color:#b8cadb;
+    text-align:left;
+    cursor:pointer;
+}
+
+.nav:hover,
+.nav.active{
+    background:#12304e;
+    color:#fff;
+}
+
+/* MAIN */
+.main{
+    margin-left:235px;
+    width:calc(100% - 235px);
+    padding:22px;
+}
+
+.hero{
+    background:linear-gradient(120deg,#0e2945,#0b1b2c);
+    border:1px solid #20364d;
+    border-radius:15px;
+    padding:22px;
+    margin-bottom:18px;
+}
+
+.hero h1{
+    margin-bottom:8px;
+    font-size:26px;
+}
+
+.hero p{
+    color:#8fa8bf;
+}
+
+/* SEARCH */
+.search{
+    width:100%;
+    padding:12px;
+    background:#0a1725;
+    border:1px solid #20364d;
+    border-radius:9px;
+    color:#fff;
+    margin-bottom:15px;
+}
+
+/* TABS */
+.tabs{
+    display:flex;
+    gap:8px;
+    overflow:auto;
+    margin-bottom:18px;
+}
+
+.tab{
+    white-space:nowrap;
+    padding:9px 14px;
+    border-radius:8px;
+    border:1px solid #20364d;
+    background:#0b1928;
+    color:#c8d7e5;
+    cursor:pointer;
+}
+
+.tab.active{
+    background:#2563eb;
+    border-color:#2563eb;
+    color:#fff;
+}
+
+/* CARDS */
+.grid{
+    display:grid;
+    grid-template-columns:
+    repeat(auto-fill,minmax(210px,1fr));
+    gap:14px;
+}
+
+.card{
+    background:#0d1b2a;
+    border:1px solid #20364d;
+    border-radius:13px;
+    padding:15px;
+}
+
+.card h3{
+    margin-bottom:8px;
+    font-size:16px;
+}
+
+.meta{
+    color:#8fa8bf;
+    font-size:12px;
+    margin-bottom:14px;
+}
+
+.open{
+    width:100%;
+    border:0;
+    padding:10px;
+    background:#2563eb;
+    color:#fff;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.open:hover{
+    background:#1d4ed8;
+}
+
+.favorite{
+    margin-top:8px;
+    width:100%;
+    border:1px solid #30465c;
+    padding:8px;
+    background:#111f2e;
+    color:#fff;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+/* SECTIONS */
+.hidden{
+    display:none!important;
+}
+
+/* MASTER */
+.masterBox{
+    background:#0d1b2a;
+    border:1px solid #20364d;
+    border-radius:15px;
+    padding:20px;
+}
+
+.masterBox h2{
+    margin-bottom:8px;
+}
+
+.muted{
+    color:#8fa8bf;
+    font-size:13px;
+}
+
+.row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:15px;
+}
+
+.field{
+    flex:1;
+    min-width:180px;
+}
+
+.field label{
+    display:block;
+    color:#8fa8bf;
+    font-size:12px;
+    margin-bottom:5px;
+}
+
+.field input,
+.field select{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #20364d;
+    background:#081522;
+    color:#fff;
+}
+
+.item{
+    background:#081522;
+    border:1px solid #20364d;
+    border-radius:10px;
+    padding:14px;
+    margin-top:12px;
+}
+
+.btn{
+    border:0;
+    padding:10px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.primary{
+    background:#2563eb;
+    color:#fff;
+}
+
+.green{
+    background:#16a34a;
+    color:#fff;
+}
+
+.red{
+    background:#dc2626;
+    color:#fff;
+}
+
+.gray{
+    background:#334155;
+    color:#fff;
+}
+
+/* LOGIN */
+.login{
+    position:fixed;
+    inset:0;
+    background:#050d17;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+}
+
+.loginBox{
+    width:min(390px,92vw);
+    background:#0d1b2a;
+    border:1px solid #20364d;
+    border-radius:15px;
+    padding:25px;
+}
+
+.loginBox h2{
+    margin-bottom:20px;
+}
+
+.loginBox input{
+    width:100%;
+    padding:12px;
+    background:#081522;
+    border:1px solid #20364d;
+    color:#fff;
+    border-radius:8px;
+}
+
+.loginBox button{
+    width:100%;
+    margin-top:12px;
+}
+
+.warning{
+    color:#fbbf24;
+    font-size:12px;
+    line-height:1.5;
+    margin-top:12px;
+}
+
+/* VIEWER */
+.viewer{
+    position:fixed;
+    inset:0;
+    background:#000;
+    display:none;
+    z-index:80;
+}
+
+.viewer iframe{
+    width:100%;
+    height:100%;
+    border:0;
+}
+
+.back{
+    position:absolute;
+    top:12px;
+    left:12px;
+    z-index:90;
+    background:#dc2626;
+    color:#fff;
+    border:0;
+    border-radius:8px;
+    padding:10px 15px;
+    cursor:pointer;
+}
+
+/* MOBILE */
+@media(max-width:760px){
+
+    .sidebar{
+        display:none;
+    }
+
+    .main{
+        margin-left:0;
+        width:100%;
+        padding:14px;
+    }
+
+    .grid{
+        grid-template-columns:
+        repeat(2,minmax(0,1fr));
+    }
+}
+
+@media(max-width:430px){
+
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .hero h1{
+        font-size:21px;
+    }
+}
+</style>
+</head>
+
+
+<body>
+
+<!-- HEADER -->
+
+<header>
+
+<div class="logo">
+SANJAY <span>TRADING</span>
+</div>
+
+<div class="user" id="userLabel">
+Guest
+</div>
+
+</header>
+
+
+<div class="layout">
+
+
+<!-- SIDEBAR -->
+
+<aside class="sidebar">
+
+<button
+class="nav active"
+onclick="showSection('dashboard',this)">
+📊 Dashboard
+</button>
+
+<button
+class="nav"
+onclick="showSection('favorites',this)">
+⭐ Favorites
+</button>
+
+<button
+class="nav"
+id="masterButton"
+onclick="openMaster()">
+🔐 Master Control
+</button>
+
+</aside>
+
+
+<!-- MAIN -->
+
+<main class="main">
+
+
+<!-- DASHBOARD -->
+
+<section id="dashboard">
+
+<div class="hero">
+
+<h1 id="dashboardTitle">
+Sanjay Trading Dashboard
+</h1>
+
+<p>
+अपने market, timeframe और chart को चुनें।
+</p>
+
+</div>
+
+
+<input
+class="search"
+id="search"
+placeholder="🔍 Search..."
+oninput="renderDashboard()"
+>
+
+
+<div
+class="tabs"
+id="categoryTabs">
+</div>
+
+
+<div
+class="grid"
+id="cards">
+</div>
+
+</section>
+
+
+<!-- FAVORITES -->
+
+<section
+id="favorites"
+class="hidden">
+
+<div class="hero">
+
+<h1>⭐ Favorites</h1>
+
+<p>
+आपके पसंद किए हुए options।
+</p>
+
+</div>
+
+<div
+class="grid"
+id="favoriteCards">
+</div>
+
+</section>
+
+
+<!-- MASTER CONTROL -->
+
+<section
+id="master"
+class="hidden">
+
+<div class="masterBox">
+
+<h2>
+🔐 Master Control
+</h2>
+
+<p class="muted">
+यह panel केवल Master के लिए है।
+</p>
+
+
+<div class="row">
+
+<div class="field">
+
+<label>
+Dashboard Name
+</label>
+
+<input
+id="siteTitle"
+placeholder="Website Name">
+
+</div>
+
+
+<div class="field">
+
+<label>
+New Category
+</label>
+
+<input
+id="newCategory"
+placeholder="BTCUSD / NIFTY / GOLD">
+
+</div>
+
+
+<button
+class="btn primary"
+onclick="addCategory()">
+
++ Category
+
+</button>
+
+</div>
+
+
+<hr
+style="margin:20px 0;border-color:#20364d">
+
+
+<div id="editList">
+</div>
+
+
+<div class="row">
+
+<button
+class="btn primary"
+onclick="addItem()">
+
++ नया Link
+
+</button>
+
+
+<button
+class="btn green"
+onclick="saveSettings()">
+
+💾 Save All
+
+</button>
+
+
+<button
+class="btn gray"
+onclick="logout()">
+
+Logout
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+</main>
+
+</div>
+
+
+<!-- LOGIN -->
+
+<div
+class="login"
+id="login">
+
+<div class="loginBox">
+
+<h2>
+🔐 Master Login
+</h2>
+
+
+<input
+id="masterPassword"
+type="password"
+placeholder="Master Password"
+>
+
+
+<button
+class="btn primary"
+onclick="login()">
+
+Login
+
+</button>
+
+
+<div class="warning">
+
+Demo password:
+<b>change-me</b>
+
+<br><br>
+
+Production website में password
+HTML/JavaScript में नहीं रखना चाहिए।
+Server-side authentication लगाएँ।
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- WEBSITE VIEWER -->
+
+<div
+class="viewer"
+id="viewer">
+
+<button
+class="back"
+onclick="closeViewer()">
+
+← वापस
+
+</button>
+
+
+<iframe
+id="websiteFrame">
+</iframe>
+
+</div>
+
+
+
+<script>
+
+/* =====================================================
+   DATABASE
+===================================================== */
+
+const STORAGE_KEY =
+"sanjay_master_dashboard";
+
+
+let database =
+JSON.parse(
+localStorage.getItem(STORAGE_KEY)
+) || {
+
+
+title:
+"Sanjay Trading Dashboard",
+
+
+categories:[
+"BTCUSD",
+"NIFTY"
+],
+
+
+items:[
+
+
+{
+id:1,
+category:"BTCUSD",
+name:"1 Minute Basic Plus",
+timeframe:"1M",
+type:"Basic Plus",
+url:"https://www.mamatainfotech.com/p/btcusd-bitcoin-vs-us-dollar-buy-sell.html",
+enabled:true
+},
+
+
+{
+id:2,
+category:"BTCUSD",
+name:"3 Minute Basic Plus",
+timeframe:"3M",
+type:"Basic Plus",
+url:"https://www.mamatainfotech.com/p/btcusd-bitcoin-vs-us-dollar-buy-sell.html",
+enabled:true
+},
+
+
+{
+id:3,
+category:"BTCUSD",
+name:"5 Minute Heavy",
+timeframe:"5M",
+type:"Heavy",
+url:"https://www.mamatainfotech.com/p/btcusd-bitcoin-vs-us-dollar-buy-sell.html",
+enabled:true
+},
+
+
+{
+id:4,
+category:"BTCUSD",
+name:"15 Minute RSI",
+timeframe:"15M",
+type:"RSI",
+url:"https://www.mamatainfotech.com/p/btcusd-bitcoin-vs-us-dollar-buy-sell.html",
+enabled:true
+},
+
+
+{
+id:5,
+category:"BTCUSD",
+name:"1 Hour Signal",
+timeframe:"1H",
+type:"Signal",
+url:"https://www.mamatainfotech.com/p/btcusd-bitcoin-vs-us-dollar-buy-sell.html",
+enabled:true
+},
+
+
+{
+id:6,
+category:"NIFTY",
+name:"NIFTY 5 Minute",
+timeframe:"5M",
+type:"Signal",
+url:"https://www.tradingview.com/",
+enabled:true
+}
+
+],
+
+
+favorites:[]
+
+};
+
+
+let activeCategory="ALL";
+
+let masterLoggedIn=false;
+
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+function escapeHTML(text){
+
+return String(text ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+
+
+/* =====================================================
+   SAVE DATABASE
+===================================================== */
+
+function saveDatabase(){
+
+localStorage.setItem(
+STORAGE_KEY,
+JSON.stringify(database)
+);
+
+}
+
+
+
+/* =====================================================
+   CATEGORY TABS
+===================================================== */
+
+function renderCategories(){
+
+let box=
+document.getElementById(
+"categoryTabs"
+);
+
+
+box.innerHTML=
+`<button
+class="tab ${activeCategory==="ALL"?"active":""}"
+onclick="setCategory('ALL')">
+ALL
+</button>`;
+
+
+database.categories.forEach(
+category=>{
+
+box.innerHTML+=`
+
+<button
+class="tab ${activeCategory===category?"active":""}"
+onclick="setCategory('${escapeHTML(category)}')">
+
+${escapeHTML(category)}
+
+</button>
+
+`;
+
+});
+
+}
+
+
+
+/* =====================================================
+   SET CATEGORY
+===================================================== */
+
+function setCategory(category){
+
+activeCategory=category;
+
+renderDashboard();
+
+}
+
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+function createCard(item){
+
+let favorite=
+database.favorites.includes(
+item.id
+);
+
+
+return `
+
+<div class="card">
+
+<h3>
+${escapeHTML(item.name)}
+</h3>
+
+
+<div class="meta">
+
+${escapeHTML(item.category)}
+·
+${escapeHTML(item.timeframe)}
+·
+${escapeHTML(item.type)}
+
+</div>
+
+
+<button
+class="open"
+onclick="openWebsite(${item.id})">
+
+🌐 Open Website
+
+</button>
+
+
+<button
+class="favorite"
+onclick="toggleFavorite(${item.id})">
+
+${favorite ? "★ Remove Favorite":"☆ Add Favorite"}
+
+</button>
+
+</div>
+
+`;
+
+}
+
+
+
+/* =====================================================
+   RENDER DASHBOARD
+===================================================== */
+
+function renderDashboard(){
+
+renderCategories();
+
+
+let query=
+document.getElementById(
+"search"
+).value.toLowerCase();
+
+
+let list=
+database.items.filter(
+item=>{
+
+if(!item.enabled)
+return false;
+
+
+if(
+activeCategory!=="ALL" &&
+item.category!==activeCategory
+)
+return false;
+
+
+let text=
+(
+item.name+
+" "+
+item.category+
+" "+
+item.timeframe+
+" "+
+item.type
+).toLowerCase();
+
+
+return !query ||
+text.includes(query);
+
+});
+
+
+let cards=
+document.getElementById(
+"cards"
+);
+
+
+cards.innerHTML=
+list.map(createCard).join("");
+
+
+if(!list.length){
+
+cards.innerHTML=
+`<p class="muted">
+कोई option नहीं मिला।
+</p>`;
+
+}
+
+
+renderFavorites();
+
+}
+
+
+
+/* =====================================================
+   FAVORITES
+===================================================== */
+
+function renderFavorites(){
+
+let box=
+document.getElementById(
+"favoriteCards"
+);
+
+
+let list=
+database.items.filter(
+item=>
+database.favorites.includes(
+item.id
+) &&
+item.enabled
+);
+
+
+box.innerHTML=
+list.map(createCard).join("");
+
+
+if(!list.length){
+
+box.innerHTML=
+`<p class="muted">
+अभी कोई favorite नहीं है।
+</p>`;
+
+}
+
+}
+
+
+
+/* =====================================================
+   TOGGLE FAVORITE
+===================================================== */
+
+function toggleFavorite(id){
+
+if(
+database.favorites.includes(id)
+){
+
+database.favorites=
+database.favorites.filter(
+x=>x!==id
+);
+
+}else{
+
+database.favorites.push(id);
+
+}
+
+
+saveDatabase();
+
+renderDashboard();
+
+}
+
+
+
+/* =====================================================
+   OPEN WEBSITE
+===================================================== */
+
+function openWebsite(id){
+
+let item=
+database.items.find(
+x=>x.id===id
+);
+
+
+if(!item)
+return;
+
+
+/*
+ कुछ websites iframe को block करती हैं।
+ ऐसे मामले में नीचे का iframe blank हो सकता है।
+*/
+
+document.getElementById(
+"websiteFrame"
+).src=item.url;
+
+
+document.getElementById(
+"viewer"
+).style.display="block";
+
+}
+
+
+
+/* =====================================================
+   CLOSE WEBSITE
+===================================================== */
+
+function closeViewer(){
+
+document.getElementById(
+"websiteFrame"
+).src="";
+
+
+document.getElementById(
+"viewer"
+).style.display="none";
+
+}
+
+
+
+/* =====================================================
+   SECTIONS
+===================================================== */
+
+function showSection(
+section,
+button
+){
+
+if(
+section==="master" &&
+!masterLoggedIn
+){
+
+openMaster();
+
+return;
+
+}
+
+
+[
+"dashboard",
+"favorites",
+"master"
+].forEach(
+id=>{
+
+document.getElementById(
+id
+).classList.toggle(
+"hidden",
+id!==section
+);
+
+});
+
+
+document.querySelectorAll(
+".nav"
+).forEach(
+x=>x.classList.remove(
+"active"
+)
+);
+
+
+if(button)
+button.classList.add("active");
+
+
+if(section==="master")
+renderEditor();
+
+}
+
+
+
+/* =====================================================
+   MASTER LOGIN
+===================================================== */
+
+function openMaster(){
+
+if(masterLoggedIn){
+
+showSection(
+"master",
+document.getElementById(
+"masterButton"
+)
+);
+
+return;
+
+}
+
+
+document.getElementById(
+"login"
+).style.display="flex";
+
+}
+
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+function login(){
+
+let password=
+document.getElementById(
+"masterPassword"
+).value;
+
+
+/*
+ DEMO PASSWORD
+ Change this only for testing.
+ Real website में server authentication रखें.
+*/
+
+if(password==="change-me"){
+
+masterLoggedIn=true;
+
+document.getElementById(
+"login"
+).style.display="none";
+
+
+document.getElementById(
+"userLabel"
+).innerText=
+"MASTER";
+
+
+showSection(
+"master",
+document.getElementById(
+"masterButton"
+)
+);
+
+
+}else{
+
+alert(
+"गलत Master Password"
+);
+
+}
+
+}
+
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+function logout(){
+
+masterLoggedIn=false;
+
+document.getElementById(
+"userLabel"
+).innerText=
+"Guest";
+
+
+showSection(
+"dashboard",
+document.querySelector(
+".nav"
+)
+);
+
+}
+
+
+
+/* =====================================================
+   MASTER EDITOR
+===================================================== */
+
+function renderEditor(){
+
+if(!masterLoggedIn)
+return;
+
+
+document.getElementById(
+"siteTitle"
+).value=
+database.title;
+
+
+let box=
+document.getElementById(
+"editList"
+);
+
+
+box.innerHTML="";
+
+
+database.items.forEach(
+item=>{
+
+
+box.innerHTML+=`
+
+<div class="item">
+
+<div class="row">
+
+
+<div class="field">
+
+<label>
+Option Name
+</label>
+
+<input
+id="name_${item.id}"
+value="${escapeHTML(item.name)}">
+
+</div>
+
+
+<div class="field">
+
+<label>
+Category
+</label>
+
+<select
+id="category_${item.id}">
+
+${database.categories.map(
+category=>`
+
+<option
+${category===item.category?"selected":""}>
+
+${escapeHTML(category)}
+
+</option>
+
+`).join("")}
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>
+Timeframe
+</label>
+
+<input
+id="time_${item.id}"
+value="${escapeHTML(item.timeframe)}">
+
+</div>
+
+
+<div class="field">
+
+<label>
+Type
+</label>
+
+<input
+id="type_${item.id}"
+value="${escapeHTML(item.type)}">
+
+</div>
+
+
+<div class="field"
+style="flex:2">
+
+<label>
+Website URL
+</label>
+
+<input
+id="url_${item.id}"
+value="${escapeHTML(item.url)}">
+
+</div>
+
+
+</div>
+
+
+<div class="row">
+
+<label>
+
+<input
+type="checkbox"
+id="enabled_${item.id}"
+${item.enabled?"checked":""}>
+
+ Enabled
+
+</label>
+
+
+<button
+class="btn red"
+onclick="deleteItem(${item.id})">
+
+Delete
+
+</button>
+
+</div>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+
+/* =====================================================
+   ADD ITEM
+===================================================== */
+
+function addItem(){
+
+let category=
+database.categories[0] ||
+"General";
+
+
+database.items.push({
+
+id:Date.now(),
+
+category:category,
+
+name:"New Website",
+
+timeframe:"5M",
+
+type:"Signal",
+
+url:"https://example.com",
+
+enabled:true
+
+});
+
+
+renderEditor();
+
+}
+
+
+
+/* =====================================================
+   DELETE ITEM
+===================================================== */
+
+function deleteItem(id){
+
+if(
+!confirm(
+"क्या आप यह option हटाना चाहते हैं?"
+)
+)
+return;
+
+
+database.items=
+database.items.filter(
+item=>item.id!==id
+);
+
+
+database.favorites=
+database.favorites.filter(
+x=>x!==id
+);
+
+
+saveDatabase();
+
+renderEditor();
+
+renderDashboard();
+
+}
+
+
+
+/* =====================================================
+   ADD CATEGORY
+===================================================== */
+
+function addCategory(){
+
+let input=
+document.getElementById(
+"newCategory"
+);
+
+
+let category=
+input.value.trim();
+
+
+if(!category)
+return;
+
+
+if(
+database.categories.includes(
+category
+)
+){
+
+alert(
+"यह category पहले से मौजूद है।"
+);
+
+return;
+
+}
+
+
+database.categories.push(
+category
+);
+
+
+input.value="";
+
+
+saveDatabase();
+
+renderEditor();
+
+renderDashboard();
+
+}
+
+
+
+/* =====================================================
+   SAVE ALL
+===================================================== */
+
+function saveSettings(){
+
+database.title=
+document.getElementById(
+"siteTitle"
+).value.trim()
+||
+"Sanjay Trading Dashboard";
+
+
+database.items.forEach(
+item=>{
+
+let name=
+document.getElementById(
+"name_"+item.id
+);
+
+let category=
+document.getElementById(
+"category_"+item.id
+);
+
+let time=
+document.getElementById(
+"time_"+item.id
+);
+
+let type=
+document.getElementById(
+"type_"+item.id
+);
+
+let url=
+document.getElementById(
+"url_"+item.id
+);
+
+let enabled=
+document.getElementById(
+"enabled_"+item.id
+);
+
+
+if(name)
+item.name=name.value;
+
+
+if(category)
+item.category=category.value;
+
+
+if(time)
+item.timeframe=time.value;
+
+
+if(type)
+item.type=type.value;
+
+
+if(url)
+item.url=url.value;
+
+
+if(enabled)
+item.enabled=enabled.checked;
+
+});
+
+
+saveDatabase();
+
+renderDashboard();
+
+alert(
+"✓ सभी settings save हो गईं।"
+);
+
+}
+
+
+
+/* =====================================================
+   START
+===================================================== */
+
+document.getElementById(
+"dashboardTitle"
+).innerText=
+database.title;
+
+
+renderDashboard();
+
+</script>
+
+</body>
+  </html>
