@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Battle Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background-color: #0b0e14; color: #ffffff; }
+    
+    header {
+      background-color: #161a25;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2a2e39;
+    }
+    header h1 { font-size: 18px; color: #00f2fe; }
+    .status-badge { background-color: #26a69a; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      height: calc(100vh - 50px);
+    }
+
+    .chart-section {
+      flex: 3;
+      min-width: 300px;
+      height: 100%;
+    }
+
+    .sidebar {
+      flex: 1;
+      min-width: 280px;
+      background-color: #131722;
+      border-left: 1px solid #2a2e39;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background-color: #1e222d;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      border: 1px solid #2a2e39;
+    }
+
+    .card h3 { font-size: 14px; color: #848e9c; margin-bottom: 10px; text-transform: uppercase; }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .val-green { color: #089981; font-weight: bold; }
+    .val-red { color: #f23645; font-weight: bold; }
+
+    .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-buy { background-color: #089981; color: white; }
+    .btn-sell { background-color: #f23645; color: white; }
+
+    .log-box {
+      font-family: monospace;
+      font-size: 11px;
+      background: #0b0e14;
+      padding: 8px;
+      border-radius: 4px;
+      max-height: 120px;
+      overflow-y: auto;
+      color: #b2b9c0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Trade Battle - BTC/USDT</h1>
+    <span class="status-badge">System Ready</span>
+  </header>
+
+  <div class="main-container">
+    <!-- 01 LIVE CHART -->
+    <div class="chart-section">
+      <div class="tradingview-widget-container" style="height:100%; width:100%;">
+        <div id="tradingview_btcusdt" style="height:calc(100% - 32px); width:100%;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:BTCUSDT",
+            "interval": "15",
+            "timezone": "Asia/Kolkata",
+            "theme": "dark",
+            "style": "1",
+            "locale": "in",
+            "container_id": "tradingview_btcusdt"
+          });
+        </script>
+      </div>
+    </div>
+
+    <!-- SIDEBAR: Strategy, Dashboard & Order Parameters -->
+    <div class="sidebar">
+      
+      <!-- Indicator & Signal Status -->
+      <div class="card">
+        <h3>02 SuperTrend & Signal</h3>
+        <div class="stat-row">
+          <span>Indicator:</span>
+          <span>SuperTrend (10, 3)</span>
+        </div>
+        <div class="stat-row">
+          <span>Current Signal:</span>
+          <span class="val-green">BUY / LONG</span>
+        </div>
+      </div>
+
+      <!-- Target & Stop Loss -->
+      <div class="card">
+        <h3>04 Target & 05 Stop Loss</h3>
+        <div class="stat-row">
+          <span>Take Profit (TP):</span>
+          <span class="val-green">+2.00%</span>
+        </div>
+        <div class="stat-row">
+          <span>Stop Loss (SL):</span>
+          <span class="val-red">-1.00%</span>
+        </div>
+        <div class="stat-row">
+          <span>Risk/Reward:</span>
+          <span>1 : 2</span>
+        </div>
+      </div>
+
+      <!-- Order Preview -->
+      <div class="card">
+        <h3>08 Dashboard & 09 Order</h3>
+        <div class="stat-row">
+          <span>Symbol:</span>
+          <span>BTCUSDT Perpetual</span>
+        </div>
+        <div class="stat-row">
+          <span>Order Type:</span>
+          <span>Market</span>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-buy">LONG</button>
+          <button class="btn btn-sell">SHORT</button>
+        </div>
+      </div>
+
+      <!-- Alert Logs -->
+      <div class="card">
+        <h3>06 Alert Monitor</h3>
+        <div class="log-box">
+          [System] Dashboard loaded.<br>
+          [Chart] BTC/USDT live feed active.<br>
+          [Signal] SuperTrend initialized.<br>
+          [Ready] Waiting for webhook trigger...
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+  </html>
+    
