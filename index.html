@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Pro Terminal - Live Chart & Indicators</title>
+  
+  <!-- Lightweight Charts Official Library -->
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0b0e14;
+      color: #d1d4dc;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP TRADINGVIEW NAVIGATION BAR */
+    .tv-navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #131722;
+      border-bottom: 1px solid #2a2e39;
+      padding: 8px 16px;
+      height: 50px;
+    }
+
+    .nav-left, .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      font-weight: 800;
+      font-size: 15px;
+      color: #2962ff;
+      letter-spacing: 0.5px;
+    }
+
+    .select-dropdown, .tv-btn {
+      background-color: #1e222d;
+      color: #d1d4dc;
+      border: 1px solid #2a2e39;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-dropdown:hover, .tv-btn:hover {
+      border-color: #2962ff;
+    }
+
+    .tv-btn.active {
+      background-color: #2962ff;
+      color: #ffffff;
+      border-color: #2962ff;
+    }
+
+    /* MAIN TERMINAL LAYOUT */
+    .terminal-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      background-color: #131722;
+      height: calc(100vh - 50px);
+    }
+
+    @media (max-width: 900px) {
+      .terminal-body { grid-template-columns: 1fr; }
+      .right-sidebar { display: none; }
+    }
+
+    /* CHART WRAPPER */
+    .chart-area {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #tv-chart {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* FLOATING WATERMARK / INFO ON CHART */
+    .chart-watermark {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 10;
+      pointer-events: none;
+      font-family: monospace;
+    }
+
+    .wm-symbol { font-size: 16px; font-weight: bold; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+    .wm-price { font-size: 14px; font-weight: bold; color: #26a69a; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+    /* RIGHT SIDEBAR FOR INDICATORS & METRICS */
+    .right-sidebar {
+      background-color: #151924;
+      border-left: 1px solid #2a2e39;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #787b86;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 1px solid #2a2e39;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+
+    .indicator-toggle-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e222d;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px solid #2a2e39;
+    }
+
+    .toggle-switch {
+      cursor: pointer;
+      accent-color: #2962ff;
+      width: 16px;
+      height: 16px;
+    }
+
+    .metric-box {
+      background: #1e222d;
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid #2a2e39;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #787b86;
+    }
+
+    .metric-val {
+      font-family: monospace;
+      color: #d1d4dc;
+      font-weight: bold;
+    }
+
+    /* CONSOLE LOG */
+    #terminal-console {
+      background-color: #0b0e14;
+      border: 1px solid #2a2e39;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 10px;
+      height: 140px;
+      overflow-y: auto;
+      color: #26a69a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP TRADINGVIEW TOOLBAR -->
+  <div class="tv-navbar">
+    <div class="nav-left">
+      <div class="brand-logo">📊 TV-PRO</div>
+      
+      <!-- Market Selector (Permanent State) -->
+      <select id="symbolSelect" class="select-dropdown" onchange="onSymbolChange(this.value)">
+        <option value="BTCUSDT" selected>BTC/USDT (Bitcoin)</option>
+        <option value="ETHUSDT">ETH/USDT (Ethereum)</option>
+        <option value="SOLUSDT">SOL/USDT (Solana)</option>
+        <option value="BNBUSDT">BNB/USDT (Binance)</option>
+        <option value="DOGEUSDT">DOGE/USDT (Dogecoin)</option>
+      </select>
+
+      <!-- Multi-Timeframe Selector (Permanent State) -->
+      <div style="display: flex; gap: 4px;" id="tfGroup">
+        <button class="tv-btn" onclick="onTimeframeChange('1m', this)">1m</button>
+        <button class="tv-btn active" onclick="onTimeframeChange('5m', this)">5m</button>
+        <button class="tv-btn" onclick="onTimeframeChange('15m', this)">15m</button>
+        <button class="tv-btn" onclick="onTimeframeChange('1h', this)">1h</button>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <span id="connStatus" style="font-size: 11px; color: #26a69a; font-weight: bold;">● LIVE WS</span>
+    </div>
+  </div>
+
+  <!-- TERMINAL CONTENT -->
+  <div class="terminal-body">
+    
+    <!-- CHART SECTION -->
+    <div class="chart-area">
+      <div class="chart-watermark">
+        <div class="wm-symbol" id="wmSymbol">BTCUSDT</div>
+        <div class="wm-price" id="wmPrice">$0.00</div>
+      </div>
+      <div id="tv-chart"></div>
+    </div>
+
+    <!-- RIGHT SIDEBAR (INDICATORS & CONFIG) -->
+    <div class="right-sidebar">
+      
+      <div class="sidebar-section-title">Indicators Control</div>
+      
+      <div class="indicator-toggle-box">
+        <span>Supertrend (10, 3)</span>
+        <input type="checkbox" id="chkSupertrend" class="toggle-switch" checked onchange="toggleIndicator()">
+      </div>
+
+      <div class="indicator-toggle-box">
+        <span>EMA 50 (Trend)</span>
+        <input type="checkbox" id="chkEma" class="toggle-switch" checked onchange="toggleIndicator()">
+      </div>
+
+      <div class="sidebar-section-title">Live Signal Status</div>
+      
+      <div class="metric-box">
+        <div class="metric-row">
+          <span>Current Trend:</span>
+          <span id="indTrend" class="metric-val" style="color:#26a69a;">BULLISH</span>
+        </div>
+        <div class="metric-row">
+          <span>Supertrend Line:</span>
+          <span id="indStVal" class="metric-val">$0.00</span>
+        </div>
+        <div class="metric-row">
+          <span>EMA 50 Value:</span>
+          <span id="indEmaVal" class="metric-val">$0.00</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">System Console</div>
+      <div id="terminal-console">
+        [INIT] Terminal loaded successfully.<br>[CONNECT] Connecting to Binance Stream...
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- CORE TRADING ENGINE SCRIPT -->
+  <script>
+    let chart, candleSeries, stSeries, emaSeries;
+    let ws = null;
+    let currentSymbol = localStorage.getItem('tv_symbol') || 'BTCUSDT';
+    let currentTimeframe = localStorage.getItem('tv_tf') || '5m';
+    let rawCandles = [];
+
+    // Initialize saved preferences on load
+    document.getElementById('symbolSelect').value = currentSymbol;
+    
+    // Highlight active timeframe button
+    const tfButtons = document.querySelectorAll('#tfGroup button');
+    tfButtons.forEach(btn => {
+      if (btn.innerText.toLowerCase() === currentTimeframe) {
+        tfButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+
+    function initChart() {
+      const container = document.getElementById('tv-chart');
+      
+      chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
+        grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        priceScale: { borderColor: '#2a2e39' },
+        timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false }
+      });
+
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350',
+        borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a', wickDownColor: '#ef5350'
+      });
+
+      stSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, crosshairMarkerVisible: false });
+      emaSeries = chart.addLineSeries({ color: '#ff9800', lineWidth: 1.5, crosshairMarkerVisible: false });
+
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+      });
+
+      loadHistory();
+    }
+
+    // Load Historical Candles via Binance REST API
+    async function loadHistory() {
+      log(`[REST] Fetching ${currentSymbol} data for timeframe ${currentTimeframe}...`);
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}&interval=${currentTimeframe}&limit=300`);
+        const data = await res.json();
+
+        rawCandles = data.map(d => ({
+          time: Math.floor(d[0] / 1000),
+          open: parseFloat(d[1]),
+          high: parseFloat(d[2]),
+          low: parseFloat(d[3]),
+          close: parseFloat(d[4])
+        }));
+
+        candleSeries.setData(rawCandles);
+        calculateAndPlotIndicators();
+        connectWebSocket();
+
+      } catch (err) {
+        log(`[ERROR] Failed to load history: ${err.message}`);
+      }
+    }
+
+    // Calculate Supertrend & EMA Indicators
+    function calculateAndPlotIndicators() {
+      if (rawCandles.length === 0) return;
+
+      // 1. Supertrend Calculation (Period 10, Multiplier 3)
+      const stData = computeSupertrend(rawCandles, 10, 3);
+      const showSt = document.getElementById('chkSupertrend').checked;
+      stSeries.setData(showSt ? stData.map(d => ({ time: d.time, value: d.value })) : []);
+
+      // 2. EMA 50 Calculation
+      const emaData = computeEMA(rawCandles, 50);
+      const showEma = document.getElementById('chkEma').checked;
+      emaSeries.setData(showEma ? emaData : []);
+
+      // Update Top Watermark & Sidebar Metrics
+      const lastCandle = rawCandles[rawCandles.length - 1];
+      const lastSt = stData[stData.length - 1];
+      const lastEma = emaData[emaData.length - 1] ? emaData[emaData.length - 1].value : 0;
+
+      document.getElementById('wmSymbol').innerText = currentSymbol;
+      document.getElementById('wmPrice').innerText = '$' + lastCandle.close.toFixed(2);
+      document.getElementById('indStVal').innerText = '$' + (lastSt ? lastSt.value.toFixed(2) : '0.00');
+      document.getElementById('indEmaVal').innerText = '$' + lastEma.toFixed(2);
+
+      const trendEl = document.getElementById('indTrend');
+      if (lastSt && lastSt.isUp) {
+        trendEl.innerText = 'BULLISH (BUY)';
+        trendEl.style.color = '#26a69a';
+      } else {
+        trendEl.innerText = 'BEARISH (SELL)';
+        trendEl.style.color = '#ef5350';
+      }
+
+      chart.timeScale().fitContent();
+    }
+
+    function computeSupertrend(candles, period, mult) {
+      let result = [];
+      let atr = [];
+      let upper = [], lower = [];
+      let inUp = true;
+
+      for (let i = 0; i < candles.length; i++) {
+        let tr = i === 0 ? candles[i].high - candles[i].low : Math.max(
+          candles[i].high - candles[i].low,
+          Math.abs(candles[i].high - candles[i - 1].close),
+          Math.abs(candles[i].low - candles[i - 1].close)
+        );
+        if (i < period) atr.push(tr);
+        else atr.push((atr[i - 1] * (period - 1) + tr) / period);
+
+        let hl2 = (candles[i].high + candles[i].low) / 2;
+        let bUp = hl2 + mult * atr[i];
+        let bLow = hl2 - mult * atr[i];
+
+        if (i === 0) {
+          upper.push(bUp); lower.push(bLow);
+          result.push({ time: candles[i].time, value: bLow, isUp: true });
+          continue;
+        }
+
+        let fUp = bUp < upper[i - 1] || candles[i - 1].close > upper[i - 1] ? bUp : upper[i - 1];
+        let fLow = bLow > lower[i - 1] || candles[i - 1].close < lower[i - 1] ? bLow : lower[i - 1];
+
+        upper.push(fUp); lower.push(fLow);
+
+        if (inUp) {
+          if (candles[i].close < fLow) { inUp = false; result.push({ time: candles[i].time, value: fUp, isUp: false }); }
+          else { result.push({ time: candles[i].time, value: fLow, isUp: true }); }
+        } else {
+          if (candles[i].close > fUp) { inUp = true; result.push({ time: candles[i].time, value: fLow, isUp: true }); }
+          else { result.push({ time: candles[i].time, value: fUp, isUp: false }); }
+        }
+      }
+      return result;
+    }
+
+    function computeEMA(candles, period) {
+      let result = [];
+      let k = 2 / (period + 1);
+      let emaPrev = 0;
+
+      for (let i = 0; i < candles.length; i++) {
+        if (i < period) {
+          emaPrev += candles[i].close;
+          if (i === period - 1) {
+            emaPrev = emaPrev / period;
+            result.push({ time: candles[i].time, value: emaPrev });
+          }
+        } else {
+          let emaCurr = (candles[i].close * k) + (emaPrev * (1 - k));
+          result.push({ time: candles[i].time, value: emaCurr });
+          emaPrev = emaCurr;
+        }
+      }
+      return result;
+    }
+
+    // Real-Time Binance WebSocket Feed
+    function connectWebSocket() {
+      if (ws) ws.close();
+      const stream = `${currentSymbol.toLowerCase()}@kline_${currentTimeframe}`;
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${stream}`);
+
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        const k = data.k;
+        const candle = {
+          time: Math.floor(k.t / 1000),
+          open: parseFloat(k.o),
+          high: parseFloat(k.h),
+          low: parseFloat(k.l),
+          close: parseFloat(k.c)
+        };
+
+        let lastIdx = rawCandles.length - 1;
+        if (rawCandles[lastIdx].time === candle.time) {
+          rawCandles[lastIdx] = candle;
+        } else {
+          rawCandles.push(candle);
+        }
+
+        candleSeries.update(candle);
+        calculateAndPlotIndicators();
+      };
+
+      ws.onerror = () => log(`[WS ERROR] Stream connection interrupted.`);
+    }
+
+    // User Event Handlers (With Permanent State Preservation)
+    function onSymbolChange(sym) {
+      currentSymbol = sym;
+      localStorage.setItem('tv_symbol', sym);
+      log(`[SYMBOL] Switched to permanent selection: ${sym}`);
+      loadHistory();
+    }
+
+    function onTimeframeChange(tf, btn) {
+      currentTimeframe = tf;
+      localStorage.setItem('tv_tf', tf);
+
+      document.querySelectorAll('#tfGroup button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      log(`[TIMEFRAME] Switched to permanent selection: ${tf}`);
+      loadHistory();
+    }
+
+    function toggleIndicator() {
+      calculateAndPlotIndicators();
+    }
+
+    function log(msg) {
+      const c = document.getElementById('terminal-console');
+      c.innerHTML += `<br>${msg}`;
+      c.scrollTop = c.scrollHeight;
+    }
+
+    window.onload = initChart;
+  </script>
+</body>
+  </html>
+  
