@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Pro - Multi-Market Supertrend & WhatsApp Signals</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0b0e14;
+      color: #d1d4dc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 10px;
+    }
+    .top-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #151924;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #202634;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: bold;
+      color: #2962ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .market-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    select, input, button {
+      background-color: #1e222d;
+      color: #d1d4dc;
+      border: 1px solid #2a2e39;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: #2962ff; }
+    
+    /* Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 2.5fr 1fr;
+      gap: 10px;
+    }
+    @media(max-width: 1024px) {
+      .main-container { grid-template-columns: 1fr; }
+    }
+    
+    .chart-box {
+      height: 75vh;
+      background: #131722;
+      border-radius: 8px;
+      border: 1px solid #202634;
+      overflow: hidden;
+    }
+    .tradingview-widget-container, .tradingview-widget-container__widget {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Control & Metrics Panel */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card {
+      background-color: #151924;
+      border-radius: 8px;
+      border: 1px solid #202634;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2962ff;
+      text-transform: uppercase;
+      border-bottom: 1px solid #202634;
+      padding-bottom: 6px;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #787b86;
+    }
+    .metric-val {
+      font-family: monospace;
+      color: #d1d4dc;
+      font-weight: bold;
+    }
+    .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-buy { background: rgba(38,166,154,0.2); color: #26a69a; border: 1px solid #26a69a; }
+    .badge-sell { background: rgba(239,83,80,0.2); color: #ef5350; border: 1px solid #ef5350; }
+
+    button {
+      cursor: pointer;
+      background-color: #2962ff;
+      color: #ffffff;
+      border: none;
+      font-weight: bold;
+      padding: 9px;
+      text-transform: uppercase;
+    }
+    button:hover { background-color: #1e4bd8; }
+    
+    #consoleLog {
+      background: #0b0e14;
+      border: 1px solid #202634;
+      font-family: monospace;
+      font-size: 10px;
+      height: 110px;
+      overflow-y: auto;
+      padding: 6px;
+      color: #26a69a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP TOOLBAR FOR MARKET SELECTION -->
+  <div class="top-toolbar">
+    <div class="brand">
+      📊 TRADINGVIEW MULTI-MARKET & WHATSAPP BOT
+    </div>
+    <div class="market-controls">
+      <label style="font-size:11px; color:#787b86;">Select Market:</label>
+      <select id="marketSelector" onchange="changeMarket(this.value)">
+        <optgroup label="Crypto (Binance)">
+          <option value="BINANCE:BTCUSDT" selected>BTC/USDT</option>
+          <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+          <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+          <option value="BINANCE:DOGEUSDT">DOGE/USDT</option>
+        </optgroup>
+        <optgroup label="Indian Indices & Stocks">
+          <option value="NSE:NIFTY">Nifty 50</option>
+          <option value="NSE:BANKNIFTY">Bank Nifty</option>
+          <option value="NSE:RELIANCE">Reliance</option>
+        </optgroup>
+        <optgroup label="Forex & Gold">
+          <option value="OANDA:XAUUSD">Gold (XAU/USD)</option>
+          <option value="FX:EURUSD">EUR/USD</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+
+  <!-- MAIN SECTION -->
+  <div class="main-container">
+    
+    <!-- TRADINGVIEW EMBED CHART -->
+    <div class="chart-box" id="tv-box">
+      <div class="tradingview-widget-container" id="tv-container">
+        <div class="tradingview-widget-container__widget"></div>
+      </div>
+    </div>
+
+    <!-- SIDE PANEL: TARGETS & WHATSAPP SETTINGS -->
+    <div class="side-panel">
+      
+      <!-- LIVE SIGNALS & TARGETS -->
+      <div class="card">
+        <div class="card-title">
+          <span>Supertrend & Targets</span>
+          <span id="signalBadge" class="badge badge-buy" style="float: right;">BUY</span>
+        </div>
+        <div class="metric-row">
+          <span>Active Symbol:</span>
+          <span id="dispSymbol" class="metric-val">BTCUSDT</span>
+        </div>
+        <div class="metric-row">
+          <span>Entry Price:</span>
+          <span id="dispEntry" class="metric-val">$65,200.00</span>
+        </div>
+        <div class="metric-row">
+          <span>Stop Loss (SL):</span>
+          <span id="dispSL" class="metric-val" style="color:#ef5350;">$64,500.00</span>
+        </div>
+        <div class="metric-row">
+          <span>Target 1 (TP1 1:1):</span>
+          <span id="dispTP1" class="metric-val" style="color:#26a69a;">$65,900.00</span>
+        </div>
+        <div class="metric-row">
+          <span>Target 2 (TP2 1:2):</span>
+          <span id="dispTP2" class="metric-val" style="color:#26a69a;">$66,600.00</span>
+        </div>
+        <div class="metric-row">
+          <span>Target 3 (TP3 1:3):</span>
+          <span id="dispTP3" class="metric-val" style="color:#26a69a;">$67,300.00</span>
+        </div>
+      </div>
+
+      <!-- WHATSAPP DISPATCH CONFIG -->
+      <div class="card">
+        <div class="card-title">WhatsApp Webhook Config</div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:10px; color:#787b86;">Receiver Number:</label>
+          <input type="text" id="phoneNum" value="+919876543210">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:10px; color:#787b86;">Python Webhook URL:</label>
+          <input type="text" id="webhookUrl" value="http://localhost:5000/send-whatsapp">
+        </div>
+        <button onclick="triggerManualWhatsApp()">Send Test WhatsApp</button>
+      </div>
+
+      <!-- SYSTEM LOG CONSOLE -->
+      <div class="card" style="flex:1;">
+        <div class="card-title">Execution Console</div>
+        <div id="consoleLog">[INIT] Multi-market chart loaded successfully.<br>[READY] Waiting for signal trigger...</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SCRIPT ENGINE -->
+  <script>
+    let currentMarket = "BINANCE:BTCUSDT";
+
+    function loadChart(symbol) {
+      currentMarket = symbol;
+      document.getElementById('dispSymbol').innerText = symbol.split(':')[1] || symbol;
+      
+      const container = document.getElementById('tv-container');
+      container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        "width": "100%",
+        "height": "100%",
+        "symbol": symbol,
+        "interval": "5",
+        "timezone": "Asia/Kolkata",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "allow_symbol_change": true,
+        "calendar": false,
+        "support_host": "https://www.tradingview.com"
+      });
+      container.appendChild(script);
+      
+      logMessage(`[MARKET CHANGED] Switched to ${symbol}`);
+    }
+
+    function changeMarket(val) {
+      loadChart(val);
+      // Simulate dynamic recalculation of targets based on market shift
+      simulateTargets(val);
+    }
+
+    function simulateTargets(sym) {
+      let basePrice = sym.includes('BTC') ? 65000 : sym.includes('ETH') ? 3500 : sym.includes('NIFTY') ? 24500 : 2000;
+      let risk = basePrice * 0.01; // 1% risk
+      
+      let entry = basePrice;
+      let sl = entry - risk;
+      let tp1 = entry + (risk * 1.0);
+      let tp2 = entry + (risk * 2.0);
+      let tp3 = entry + (risk * 3.0);
+
+      document.getElementById('dispEntry').innerText = '$' + entry.toFixed(2);
+      document.getElementById('dispSL').innerText = '$' + sl.toFixed(2);
+      document.getElementById('dispTP1').innerText = '$' + tp1.toFixed(2);
+      document.getElementById('dispTP2').innerText = '$' + tp2.toFixed(2);
+      document.getElementById('dispTP3').innerText = '$' + tp3.toFixed(2);
+    }
+
+    function triggerManualWhatsApp() {
+      const phone = document.getElementById('phoneNum').value;
+      const url = document.getElementById('webhookUrl').value;
+      const symbol = document.getElementById('dispSymbol').innerText;
+      const entry = document.getElementById('dispEntry').innerText;
+      const sl = document.getElementById('dispSL').innerText;
+      const tp1 = document.getElementById('dispTP1').innerText;
+      const tp2 = document.getElementById('dispTP2').innerText;
+      const tp3 = document.getElementById('dispTP3').innerText;
+      const signal = document.getElementById('signalBadge').innerText;
+
+      const payload = {
+        receiver: phone,
+        symbol: symbol,
+        timeframe: "5m",
+        signal: signal,
+        entry: entry,
+        sl: sl,
+        tp1: tp1,
+        tp2: tp2,
+        tp3: tp3,
+        timestamp: new Date().toLocaleTimeString()
+      };
+
+      logMessage(`[DISPATCH] Sending WhatsApp payload to server...`);
+
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        logMessage(`[SUCCESS] Alert dispatched via WhatsApp!`);
+      })
+      .catch(err => {
+        logMessage(`[NOTE] Python Webhook offline. Payload simulated successfully.`);
+        alert(`🚨 WHATSAPP ALERT PREVIEW:\n\nSignal: ${signal}\nSymbol: ${symbol}\nEntry: ${entry}\nSL: ${sl}\nTP1: ${tp1}\nTP2: ${tp2}\nTP3: ${tp3}`);
+      });
+    }
+
+    function logMessage(msg) {
+      const consoleBox = document.getElementById('consoleLog');
+      consoleBox.innerHTML += `<br>${msg}`;
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    // Initial load setup
+    loadChart(currentMarket);
+    simulateTargets(currentMarket);
+  </script>
+
+</body>
+  </html>
+            
